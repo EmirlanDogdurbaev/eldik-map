@@ -1,37 +1,55 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { LoginResponse } from "../types/authSchema";
+import type { AuthResponse } from "../types/authSchema";
 
-const storedToken = localStorage.getItem("authToken");
-const storedUser = localStorage.getItem("user");
-const initialUser = storedUser ? JSON.parse(storedUser) : null;
+const storedAccessToken = localStorage.getItem("access_token");
+const storedRefreshToken = localStorage.getItem("refresh_token");
+const storedUserName = localStorage.getItem("user");
+const storedEmail = localStorage.getItem("email");
+const storedRole = localStorage.getItem("role");
+
+const initialUser =
+  storedUserName && storedEmail && storedRole
+    ? {
+        name: storedUserName,
+        email: storedEmail,
+        role: storedRole,
+      }
+    : null;
 
 interface AuthState {
-  user: { id: string; email: string; name: string; role: string } | null;
-  token: string | null;
+  user: { name: string; email: string; role: string } | null;
+  accessToken: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
 }
 
 const initialState: AuthState = {
   user: initialUser,
-  token: storedToken,
-  isAuthenticated: !!storedToken && !!initialUser,
+  accessToken: storedAccessToken,
+  refreshToken: storedRefreshToken,
+  isAuthenticated: !!storedAccessToken && !!initialUser,
 };
 
 const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    setCredentials: (state, action: PayloadAction<LoginResponse>) => {
+    setCredentials: (state, action: PayloadAction<AuthResponse>) => {
       state.user = action.payload.user;
-      state.token = action.payload.token;
+      state.accessToken = action.payload.access;
+      state.refreshToken = action.payload.refresh;
       state.isAuthenticated = true;
     },
     logout: (state) => {
       state.user = null;
-      state.token = null;
+      state.accessToken = null;
+      state.refreshToken = null;
       state.isAuthenticated = false;
-      localStorage.removeItem("authToken");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
       localStorage.removeItem("user");
+      localStorage.removeItem("email");
+      localStorage.removeItem("role");
     },
   },
 });

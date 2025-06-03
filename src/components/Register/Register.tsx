@@ -1,41 +1,38 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-
 import { ZodError } from "zod";
 import { useNavigate } from "react-router-dom";
-import { useLoginMutation } from "../../api/authApi";
+import { registerSchema, type RegisterFormData } from "../../types/authSchema";
+import { useRegisterMutation } from "../../api/authApi";
 import { setCredentials, logout } from "../../services/authSlice";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { type LoginFormData, loginSchema } from "../../types/authSchema";
 
-const Login: React.FC = () => {
+const Register: React.FC = () => {
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
   });
-  const [login, { isLoading, error }] = useLoginMutation();
+  const [registerUser, { isLoading, error }] = useRegisterMutation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
 
-  const onSubmit = async (data: LoginFormData) => {
+  const onSubmit = async (data: RegisterFormData) => {
     try {
-      const response = await login(data).unwrap();
-      localStorage.setItem("access_token", response.access);
-      localStorage.setItem("refresh_token", response.refresh);
-      localStorage.setItem("user", response.user.name);
-      localStorage.setItem("email", response.user.email);
-      localStorage.setItem("role", response.user.role);
+      const response = await registerUser(data).unwrap();
+      localStorage.setItem("accessToken", response.access);
+      localStorage.setItem("refreshToken", response.refresh);
+      localStorage.setItem("user", JSON.stringify(response.user));
       dispatch(setCredentials(response));
       reset();
-      alert(`Успешный вход, ${response.user.name}!`);
-      navigate("/");
+      alert(`Регистрация успешна, ${response.user.name}!`);
+      navigate("/"); // Редирект на главную страницу
     } catch (err) {
-      console.error("Ошибка логина:", err);
+      console.error("Ошибка регистрации:", err);
     }
   };
 
@@ -44,7 +41,7 @@ const Login: React.FC = () => {
     if ("status" in error) {
       if (error.status === 404)
         return "API endpoint не найден. Проверьте настройки бэкенда.";
-      if (error.status === 401) return "Неверный email или пароль.";
+      if (error.status === 400) return "Ошибка регистрации. Проверьте данные.";
       if ("data" in error) {
         if (error.data instanceof ZodError) {
           return error.data.errors.map((e) => e.message).join(", ");
@@ -77,7 +74,24 @@ const Login: React.FC = () => {
           onSubmit={handleSubmit(onSubmit)}
           className="p-6 bg-white rounded-lg shadow-md w-full max-w-md"
         >
-          <h2 className="text-2xl font-bold mb-4 text-center">Вход</h2>
+          <h2 className="text-2xl font-bold mb-4 text-center">Регистрация</h2>
+          <div className="mb-4">
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Имя
+            </label>
+            <input
+              id="name"
+              {...register("name")}
+              className="mt-1 p-2 w-full border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Введите имя"
+            />
+            {errors.name && (
+              <p className="text-red-500 text-sm">{errors.name.message}</p>
+            )}
+          </div>
           <div className="mb-4">
             <label
               htmlFor="email"
@@ -123,12 +137,12 @@ const Login: React.FC = () => {
             disabled={isLoading}
             className="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 disabled:bg-gray-400"
           >
-            {isLoading ? "Загрузка..." : "Войти"}
+            {isLoading ? "Загрузка..." : "Зарегистрироваться"}
           </button>
           <p className="mt-4 text-center">
-            Нет аккаунта?{" "}
-            <a href="/register" className="text-blue-500 hover:underline">
-              Зарегистрируйтесь
+            Уже есть аккаунт?{" "}
+            <a href="/login" className="text-blue-500 hover:underline">
+              Войдите
             </a>
           </p>
         </form>
@@ -137,4 +151,4 @@ const Login: React.FC = () => {
   );
 };
 
-export default Login;
+export default Register;
