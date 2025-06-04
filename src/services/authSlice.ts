@@ -6,10 +6,12 @@ const storedRefreshToken = localStorage.getItem("refresh_token");
 const storedUserName = localStorage.getItem("user");
 const storedEmail = localStorage.getItem("email");
 const storedRole = localStorage.getItem("role");
+const storedID = localStorage.getItem("user_id");
 
 const initialUser =
-  storedUserName && storedEmail && storedRole
+  storedUserName && storedEmail && storedRole && storedID
     ? {
+        id: storedID,
         name: storedUserName,
         email: storedEmail,
         role: storedRole,
@@ -17,7 +19,7 @@ const initialUser =
     : null;
 
 interface AuthState {
-  user: { name: string; email: string; role: string } | null;
+  user: { name: string; email: string; role: string; id: string } | null;
   accessToken: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
@@ -50,6 +52,7 @@ const authSlice = createSlice({
       localStorage.removeItem("user");
       localStorage.removeItem("email");
       localStorage.removeItem("role");
+      localStorage.removeItem("user_id");
     },
   },
 });

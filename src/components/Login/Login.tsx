@@ -30,9 +30,9 @@ const Login: React.FC = () => {
       localStorage.setItem("user", response.user.name);
       localStorage.setItem("email", response.user.email);
       localStorage.setItem("role", response.user.role);
+      localStorage.setItem("user_id", response.user.id);
       dispatch(setCredentials(response));
       reset();
-      alert(`Успешный вход, ${response.user.name}!`);
       navigate("/");
     } catch (err) {
       console.error("Ошибка логина:", err);
@@ -56,7 +56,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 absolute inset-0">
       {isAuthenticated ? (
         <div className="p-6 bg-white rounded-lg shadow-md w-full max-w-md">
           <h2 className="text-2xl font-bold mb-4 text-center">
