@@ -5,6 +5,7 @@ import { useCreateUserMutation } from "../../api/usersApi";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
 import { ArrowLeft } from "lucide-react";
+import CustomSelect from "../../ui/Select";
 
 const CreateUser: React.FC = () => {
   const [form, setForm] = useState({
@@ -14,22 +15,25 @@ const CreateUser: React.FC = () => {
     role: "user",
     password: "",
   });
+
   const [createUser, { isLoading }] = useCreateUserMutation();
   const navigate = useNavigate();
 
   const roles = ["dispetcher", "user", "driver"] as const;
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e:
+      | React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+      | { name: string; value: string }
   ) => {
-    const { name, value } = e.target;
+    const name = "target" in e ? e.target.name : e.name;
+    const value = "target" in e ? e.target.value : e.value;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Валидация полей
     if (!form.name || !form.email || !form.password) {
       toast.error("Пожалуйста, заполните поля: имя, email и пароль", {
         position: "top-right",
@@ -37,7 +41,6 @@ const CreateUser: React.FC = () => {
       return;
     }
 
-    // Проверка формата email
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       toast.error("Введите корректный email (например, user@example.com)", {
         position: "top-right",
@@ -45,7 +48,6 @@ const CreateUser: React.FC = () => {
       return;
     }
 
-    // Проверка длины пароля
     if (form.password.length < 6) {
       toast.error("Пароль должен содержать минимум 6 символов", {
         position: "top-right",
@@ -66,6 +68,13 @@ const CreateUser: React.FC = () => {
     }
   };
 
+  const roleOptions = roles.map((role) => ({
+    value: role,
+    label: role.charAt(0).toUpperCase() + role.slice(1),
+  }));
+
+  const selectedRole = roleOptions.find((opt) => opt.value === form.role);
+
   return (
     <div className="flex flex-col min-w-screen">
       <Link
@@ -74,8 +83,8 @@ const CreateUser: React.FC = () => {
       >
         <ArrowLeft /> Назад к пользователям
       </Link>
-      <div className="flex   min-h-screen">
-        <div className="px-5 bg-white rounded-md  w-full min-w-md">
+      <div className="flex min-h-screen">
+        <div className="px-5 bg-white rounded-md w-full min-w-md">
           <h2 className="text-2xl font-bold mb-6">Создать пользователя</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -118,31 +127,31 @@ const CreateUser: React.FC = () => {
                 onChange={handleChange}
                 placeholder="Пароль"
                 required
-                className="w-full "
+                className="w-full"
               />
             </div>
+
             <div>
-              <select
-                name="role"
-                value={form.role}
-                onChange={handleChange}
-                className="w-full p-2  border-black border rounded-md focus:outline-none focus:ring-2 focus:border-blue-400 focus:outline-0 "
-              >
-                {roles.map((role) => (
-                  <option key={role} value={role}>
-                    {role.charAt(0).toUpperCase() + role.slice(1)}
-                  </option>
-                ))}
-              </select>
+              <label className="block text-sm font-medium mb-1">Роль</label>
+              <CustomSelect
+                options={roleOptions}
+                value={selectedRole || null}
+                onChange={(option) =>
+                  handleChange({ name: "role", value: option?.value || "" })
+                }
+                placeholder="Выберите роль"
+              />
             </div>
+
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-blue-400  p-2.5  text-2xl text-white"
+              className="w-full bg-blue-500 hover:bg-blue-600 p-2.5 text-lg text-white rounded-md transition"
             >
               {isLoading ? "Создание..." : "Создать"}
             </Button>
           </form>
+
           <ToastContainer
             position="top-right"
             autoClose={3000}
