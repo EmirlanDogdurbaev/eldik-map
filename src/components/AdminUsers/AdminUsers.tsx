@@ -13,6 +13,7 @@ import {
 import { getUserColumns } from "../../setup/userTableSetup";
 import Filters from "../Filters/Filters";
 import { filterFields } from "../../setup/userFilterSetup";
+import { Link } from "react-router-dom";
 
 const AdminUsers: React.FC = () => {
   const { user: currentUser } = useAppSelector((state) => state.auth);
@@ -150,11 +151,19 @@ const AdminUsers: React.FC = () => {
       style={{ maxWidth: "1400px", minWidth: "1400px", width: "100%" }}
     >
       <h2 className="text-2xl font-bold mb-6 p-3">Управление пользователями</h2>
-      <Filters
-        fields={filterFields}
-        values={filters}
-        onChange={handleFilterChange}
-      />
+      <div className="flex items-center justify-between mb-4 p-3  ">
+        <Filters
+          fields={filterFields}
+          values={filters}
+          onChange={handleFilterChange}
+        />
+        <Link
+          to="/admin/users/create"
+          className="px-4 py-2 border text-white  border-blue-400  bg-blue-400 transition-colors rounded-md"
+        >
+          Создать пользователя
+        </Link>
+      </div>
       <Table
         data={users}
         columns={columns}

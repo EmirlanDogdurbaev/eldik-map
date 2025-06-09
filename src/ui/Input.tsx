@@ -43,7 +43,7 @@ const Input = (props: InputProps) => {
       required={required}
       value={value}
       onChange={onChange}
-      className={`p-2 border-black rounded-md focus:outline-none focus:ring-2 focus:border-blue-400 focus:outline-0 ${className}`}
+      className={`p-2 border-black border rounded-md focus:outline-none focus:ring-2 focus:border-blue-400 focus:outline-0 ${className}`}
     />
   );
 };

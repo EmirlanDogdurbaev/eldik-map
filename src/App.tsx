@@ -9,6 +9,7 @@ import MapPage from "./pages/MapPage";
 import AccessDenied from "./components/AccessDenied/AccessDenied";
 import AdminDashboard from "./pages/Admin/AdminDashboard/AdminDashboard";
 import AdminUsers from "./components/AdminUsers/AdminUsers";
+import CreateUser from "./components/CreateUser/CreateUser";
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/users/create" element={<CreateUser />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["dispatcher"]} />}>

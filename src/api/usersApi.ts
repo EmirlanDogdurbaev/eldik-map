@@ -94,7 +94,7 @@ export const usersApi = createApi({
       },
       transformResponse: (response: unknown) => {
         return userSchema.parse({
-          ...(response as Record<string, unknown>),
+          ...(typeof response === "object" && response !== null ? response : {}),
           role:
             (response as any).role.toLowerCase() === "dispatcher"
               ? "dispetcher"
@@ -110,6 +110,26 @@ export const usersApi = createApi({
       }),
       invalidatesTags: ["Users"],
     }),
+    createUser: builder.mutation<
+      User,
+      { name: string; email: string; number?: string; role: string }
+    >({
+      query: (body) => ({
+        url: "users/",
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: unknown) => {
+        return userSchema.parse({
+          ...(typeof response === "object" && response !== null ? response : {}),
+          role:
+            (response as any).role.toLowerCase() === "dispatcher"
+              ? "dispetcher"
+              : (response as any).role.toLowerCase(),
+        });
+      },
+      invalidatesTags: ["Users"],
+    }),
   }),
 });
 
@@ -117,4 +137,5 @@ export const {
   useGetUsersQuery,
   useUpdateUserRoleMutation,
   useDeleteUserMutation,
+  useCreateUserMutation,
 } = usersApi;

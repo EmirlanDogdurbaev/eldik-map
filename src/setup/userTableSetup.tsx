@@ -14,6 +14,7 @@ export const getUserColumns = ({
   handleDelete,
   currentUser,
 }: UserColumnProps) => [
+ 
   {
     key: "name",
     header: "Имя",
