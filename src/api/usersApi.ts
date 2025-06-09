@@ -6,11 +6,32 @@ const userSchema = z.object({
   id: z.string(),
   name: z.string(),
   email: z.string().email(),
-  number: z.string().optional(), // Опционально, без строгой валидации
-  role: z.enum(["admin", "dispetcher", "user", "driver"]),
+  number: z.string().optional(),
+  role: z.enum(["dispetcher", "user", "driver", "admin"]),
+});
+
+const paginatedUsersSchema = z.object({
+  count: z.number(),
+  next: z.string().nullable(),
+  previous: z.string().nullable(),
+  results: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      email: z.string().email(),
+      number: z.string().optional(),
+      role: z.string(),
+    })
+  ),
 });
 
 export type User = z.infer<typeof userSchema>;
+export type PaginatedUsers = {
+  users: User[];
+  count: number;
+  next: string | null;
+  previous: string | null;
+};
 
 export const usersApi = createApi({
   reducerPath: "usersApi",
@@ -19,21 +40,29 @@ export const usersApi = createApi({
   ),
   tagTypes: ["Users"],
   endpoints: (builder) => ({
-    getUsers: builder.query<User[], void>({
-      query: () => "users/",
+    getUsers: builder.query<
+      PaginatedUsers,
+      {
+        limit: number;
+        offset: number;
+        name?: string;
+        email?: string;
+        role?: string;
+      }
+    >({
+      query: ({ limit, offset, name, email, role }) => {
+        const params = new URLSearchParams({
+          limit: limit.toString(),
+          offset: offset.toString(),
+        });
+        if (name) params.append("name", name);
+        if (email) params.append("email", email);
+        if (role) params.append("role", role);
+        return `users/?${params.toString()}`;
+      },
       transformResponse: (response: unknown) => {
-        console.log("Сырой ответ /api/users/:", response); // Логирование
-        return z
-          .array(
-            z.object({
-              id: z.string(),
-              name: z.string(),
-              email: z.string().email(),
-              number: z.string().optional(),
-              role: z.string(), // Принимаем любую строку
-            })
-          )
-          .parse(response)
+        const parsed = paginatedUsersSchema.parse(response);
+        const users = parsed.results
           .map((user) => ({
             ...user,
             role:
@@ -42,6 +71,12 @@ export const usersApi = createApi({
                 : user.role.toLowerCase(),
           }))
           .filter((user) => userSchema.safeParse(user).success) as User[];
+        return {
+          users,
+          count: parsed.count,
+          next: parsed.next,
+          previous: parsed.previous,
+        };
       },
       providesTags: ["Users"],
     }),
@@ -51,7 +86,6 @@ export const usersApi = createApi({
           role.toLowerCase() === "dispatcher"
             ? "dispetcher"
             : role.toLowerCase();
-        console.log("Отправка PATCH /api/users/:id с ролью:", normalizedRole);
         return {
           url: `users/${id}/`,
           method: "PATCH",
@@ -59,11 +93,8 @@ export const usersApi = createApi({
         };
       },
       transformResponse: (response: unknown) => {
-        console.log("Ответ PATCH /api/users/:id:", response);
         return userSchema.parse({
-          ...(typeof response === "object" && response !== null
-            ? response
-            : {}),
+          ...(response as Record<string, unknown>),
           role:
             (response as any).role.toLowerCase() === "dispatcher"
               ? "dispetcher"

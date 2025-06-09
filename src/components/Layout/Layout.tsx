@@ -10,7 +10,7 @@ const Layout = ({ children, className }: Props) => {
     <div>
       <Nav />
       <main className="flex w-full">
-        <div className={className}>{children}</div>
+        <div className={`${className} mx-auto pb-4`}>{children}</div>
       </main>
     </div>
   );

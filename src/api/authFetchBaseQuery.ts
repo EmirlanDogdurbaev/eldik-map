@@ -31,16 +31,13 @@ export const authFetchBaseQuery = (
     );
 
     if (result.error && result.error.status === 401) {
-      console.warn(
-        "Токен недействителен или отсутствует, перенаправление на /login"
-      );
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
       localStorage.removeItem("user");
       localStorage.removeItem("email");
       localStorage.removeItem("role");
       localStorage.removeItem("user_id");
-      window.location.href = "/login"; // Редирект на логин
+      window.location.href = "/login";
     }
 
     return result;

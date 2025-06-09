@@ -1,22 +1,41 @@
-import { Trash2 } from "lucide-react";
+import { useAppSelector } from "../../store/hooks";
+import { useState } from "react";
+import { toast, ToastContainer } from "react-toastify";
 import Table from "../Table/Table";
+import Modal from "../../ui/Modal";
+import Pagination from "../../ui/Pagination";
 import {
   useGetUsersQuery,
   useUpdateUserRoleMutation,
   useDeleteUserMutation,
   type User,
 } from "../../api/usersApi";
-import { useAppSelector } from "../../store/hooks";
-import { useState } from "react";
-import Modal from "../../ui/Modal";
+import { getUserColumns } from "../../setup/userTableSetup";
+import Filters from "../Filters/Filters";
+import { filterFields } from "../../setup/userFilterSetup";
 
 const AdminUsers: React.FC = () => {
   const { user: currentUser } = useAppSelector((state) => state.auth);
+  const [limit, setLimit] = useState(10);
+  const [offset, setOffset] = useState(0);
+  const [filters, setFilters] = useState({
+    name: "",
+    email: "",
+    role: "",
+  });
+
   const {
-    data: users = [],
+    data: { users = [], count = 0 } = {},
     isLoading: isUsersLoading,
     error,
-  } = useGetUsersQuery();
+  } = useGetUsersQuery({
+    limit,
+    offset,
+    name: filters.name,
+    email: filters.email,
+    role: filters.role,
+  });
+
   const [updateUserRole, { isLoading: isUpdatingRole }] =
     useUpdateUserRoleMutation();
   const [deleteUser, { isLoading: isDeletingUser }] = useDeleteUserMutation();
@@ -31,13 +50,14 @@ const AdminUsers: React.FC = () => {
   const [selectedUserForDelete, setSelectedUserForDelete] =
     useState<User | null>(null);
 
-  console.log("Загруженные пользователи:", users);
-
-  const roles = ["admin", "dispetcher", "user", "driver"] as const;
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+    setOffset(0);
+  };
 
   const handleRoleChange = (user: User, role: string) => {
     if (user.id === currentUser?.id) {
-      alert("Нельзя изменить свою роль");
+      toast.error("Нельзя изменить свою роль", { position: "top-right" });
       return;
     }
     setSelectedUserForRole(user);
@@ -53,16 +73,18 @@ const AdminUsers: React.FC = () => {
         id: selectedUserForRole.id,
         role: newRole,
       }).unwrap();
-      console.log(
-        `Роль пользователя ${selectedUserForRole.id} изменена на ${newRole}`
+      toast.success(
+        `Роль пользователя ${selectedUserForRole.name} изменена на ${
+          newRole.charAt(0).toUpperCase() + newRole.slice(1)
+        }`,
+        { position: "top-right" }
       );
       setIsRoleModalOpen(false);
       setSelectedUserForRole(null);
       setNewRole(null);
     } catch (err: any) {
-      console.error("Ошибка изменения роли:", err);
       const message = err.data?.detail || "Не удалось изменить роль";
-      alert(message);
+      toast.error(message, { position: "top-right" });
     }
   };
 
@@ -74,7 +96,7 @@ const AdminUsers: React.FC = () => {
 
   const handleDelete = (user: User) => {
     if (user.id === currentUser?.id) {
-      alert("Нельзя удалить самого себя");
+      toast.error("Нельзя удалить самого себя", { position: "top-right" });
       return;
     }
     setSelectedUserForDelete(user);
@@ -86,13 +108,17 @@ const AdminUsers: React.FC = () => {
 
     try {
       await deleteUser(selectedUserForDelete.id).unwrap();
-      console.log(`Пользователь ${selectedUserForDelete.id} удален`);
+      toast.success(
+        `Пользователь ${selectedUserForDelete.name} успешно удалён`,
+        {
+          position: "top-right",
+        }
+      );
       setIsDeleteModalOpen(false);
       setSelectedUserForDelete(null);
     } catch (err: any) {
-      console.error("Ошибка удаления:", err);
       const message = err.data?.detail || "Не удалось удалить пользователя";
-      alert(message);
+      toast.error(message, { position: "top-right" });
     }
   };
 
@@ -101,73 +127,48 @@ const AdminUsers: React.FC = () => {
     setSelectedUserForDelete(null);
   };
 
-  const columns = [
-    {
-      key: "name",
-      header: "Имя",
-      render: (user: User) => user.name,
-    },
-    {
-      key: "email",
-      header: "Email",
-      render: (user: User) => user.email,
-    },
-    {
-      key: "number",
-      header: "Телефон",
-      render: (user: User) => user.number || "Не указан",
-    },
-    {
-      key: "role",
-      header: "Роль",
-      render: (user: User) => (
-        <select
-          value={user.role}
-          onChange={(e) => handleRoleChange(user, e.target.value)}
-          className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          disabled={user.id === currentUser?.id}
-        >
-          {roles.map((role) => (
-            <option key={role} value={role}>
-              {role.charAt(0).toUpperCase() + role.slice(1)}
-            </option>
-          ))}
-        </select>
-      ),
-    },
-    {
-      key: "actions",
-      header: "Действия",
-      render: (user: User) => (
-        <button
-          onClick={() => handleDelete(user)}
-          className="text-red-500 hover:text-red-700 disabled:opacity-50"
-          disabled={user.id === currentUser?.id}
-        >
-          <Trash2 size={20} />
-        </button>
-      ),
-    },
-  ];
+  const columns = getUserColumns({
+    handleRoleChange,
+    handleDelete,
+    currentUser: currentUser
+      ? {
+          ...currentUser,
+          role: currentUser.role as "dispetcher" | "user" | "driver" | "admin",
+        }
+      : null,
+  });
 
   const errorMessage = error
     ? "status" in error
-      ? `Ошибка: ${error.status} ${JSON.stringify(error.data)}`
-      : null
+      ? `${error.status} ${JSON.stringify(error.data)}`
+      : "Неизвестная ошибка"
     : null;
 
   return (
     <div
-      className="px-3 py-4  mx-auto"
-      style={{ maxWidth: "1400px", minWidth: "1500px", width: "100%" }}
+      className="px-3 py-4 mx-auto"
+      style={{ maxWidth: "1400px", minWidth: "1400px", width: "100%" }}
     >
-      <h2 className="text-2xl font-bold mb-6 p-4">Управление пользователями</h2>
+      <h2 className="text-2xl font-bold mb-6 p-3">Управление пользователями</h2>
+      <Filters
+        fields={filterFields}
+        values={filters}
+        onChange={handleFilterChange}
+      />
       <Table
         data={users}
         columns={columns}
         keyExtractor={(user: User) => user.id}
         isLoading={isUsersLoading}
         error={errorMessage}
+        limit={limit}
+      />
+      <Pagination
+        limit={limit}
+        offset={offset}
+        count={count}
+        onLimitChange={setLimit}
+        onOffsetChange={setOffset}
       />
       <Modal
         isOpen={isRoleModalOpen}
@@ -194,13 +195,25 @@ const AdminUsers: React.FC = () => {
         title="Подтверждение удаления"
         message={
           <>
-            Действительно ли вы хотите удалить пользователя{" "}
+            Удалить пользователя{" "}
             <span className="font-semibold">{selectedUserForDelete?.name}</span>
             ?
           </>
         }
         confirmText="Удалить"
         isLoading={isDeletingUser}
+      />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
       />
     </div>
   );
