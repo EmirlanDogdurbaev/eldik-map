@@ -9,6 +9,8 @@ import MapPage from "./pages/MapPage";
 import AccessDenied from "./components/AccessDenied/AccessDenied";
 import AdminUsers from "./components/AdminUsers/AdminUsers";
 import CreateUser from "./components/CreateUser/CreateUser";
+import DispatcherDashboard from "./pages/Dispatcher/DispatcherDashboard";
+import RequestDetail from "./components/RequestDetail/RequestDetail";
 
 function App() {
   return (
@@ -23,15 +25,13 @@ function App() {
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
-          <Route path="/" element={<AdminUsers />} />
+          <Route path="/admin" element={<AdminUsers />} />
           <Route path="/admin/users/create" element={<CreateUser />} />
         </Route>
 
-        <Route element={<ProtectedRoute allowedRoles={["dispatcher"]} />}>
-          <Route
-            path="/dispatcher/dashboard"
-            element={<div>dispatcher page</div>}
-          />
+        <Route element={<ProtectedRoute allowedRoles={["dispetcher"]} />}>
+          <Route path="/dispatcher" element={<DispatcherDashboard />} />
+          <Route path="/requests/:id" element={<RequestDetail />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
@@ -42,7 +42,7 @@ function App() {
           <Route path="/driver/dashboard" element={<div>driver page</div>} />
         </Route>
 
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/map" replace />} />
       </Routes>
     </Layout>
   );
