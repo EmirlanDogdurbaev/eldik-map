@@ -134,6 +134,7 @@ const AdminUsers: React.FC = () => {
     currentUser: currentUser
       ? {
           ...currentUser,
+          number: "",
           role: currentUser.role as "dispetcher" | "user" | "driver" | "admin",
         }
       : null,

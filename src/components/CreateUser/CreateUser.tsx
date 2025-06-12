@@ -58,7 +58,7 @@ const CreateUser: React.FC = () => {
     try {
       await createUser(form).unwrap();
       toast.success("Пользователь успешно создан", { position: "top-right" });
-      navigate("/admin/users");
+      navigate("/");
     } catch (err: any) {
       const message =
         err.data?.detail ||
@@ -78,7 +78,7 @@ const CreateUser: React.FC = () => {
   return (
     <div className="flex flex-col min-w-screen">
       <Link
-        to="/admin/users"
+        to="/"
         className="mb-4 text-blue-500 hover:underline px-6 pt-5 inline-flex w-fit gap-1"
       >
         <ArrowLeft /> Назад к пользователям

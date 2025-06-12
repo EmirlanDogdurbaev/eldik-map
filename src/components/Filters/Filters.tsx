@@ -1,22 +1,22 @@
+import type { FilterField } from "../../types/types";
 import Input from "../../ui/Input";
-
-interface FilterField {
-  type: "text" | "select";
-  key: string;
-  label: string;
-  placeholder?: string;
-  options?: { value: string; label: string }[];
-}
+import CustomSelect from "../../ui/Select";
 
 interface FiltersProps {
   fields: FilterField[];
   values: Record<string, string>;
   onChange: (key: string, value: string) => void;
+  className?: string;
 }
 
-const Filters: React.FC<FiltersProps> = ({ fields, values, onChange }) => {
+const Filters: React.FC<FiltersProps> = ({
+  fields,
+  values,
+  onChange,
+  className,
+}) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 ${className}`}>
       {fields.map((field) => (
         <div key={field.key}>
           {field.type === "text" ? (
@@ -28,18 +28,18 @@ const Filters: React.FC<FiltersProps> = ({ fields, values, onChange }) => {
               className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           ) : (
-            <select
-              value={values[field.key] || ""}
-              onChange={(e) => onChange(field.key, e.target.value)}
-              className="w-full p-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">{field.placeholder || "Все"}</option>
-              {field.options?.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <CustomSelect
+              options={field.options || []}
+              value={
+                field.options?.find(
+                  (option) => option.value === values[field.key]
+                ) ?? null
+              }
+              onChange={(option) =>
+                onChange(field.key, option ? (option as any).value : "")
+              }
+              placeholder={field.placeholder || "Выберите..."}
+            />
           )}
         </div>
       ))}

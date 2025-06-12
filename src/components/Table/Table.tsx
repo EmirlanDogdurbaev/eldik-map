@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-interface Column<T> {
+export interface Column<T> {
   key: string;
   header: string;
   render: (item: T) => ReactNode;
@@ -51,11 +51,11 @@ const Table = <T,>({
 
   const rowHeight = 60;
   const headerHeight = 60;
-  const tableHeight = headerHeight + limit * rowHeight;
+  const tableHeight = headerHeight + Math.min(limit, data.length) * rowHeight;
 
   return (
     <div
-      className="overflow-x-auto border border-gray-200 rounded-md shadow-sm h-[100vh]"
+      className=" border border-gray-200 rounded-md shadow-sm"
       style={{ maxHeight: `${tableHeight}px` }}
     >
       <table className="min-w-full bg-white">
@@ -64,7 +64,7 @@ const Table = <T,>({
             {columns.map((column) => (
               <th
                 key={column.key}
-                className="p-3 text-left text-gray-700 font-semibold"
+                className="p-3 text-center text-gray-700 font-semibold"
                 style={{ height: `${headerHeight}px` }}
               >
                 {column.header}
@@ -80,23 +80,24 @@ const Table = <T,>({
               style={{ height: `${rowHeight}px` }}
             >
               {columns.map((column) => (
-                <td key={column.key} className="p-2 px-5 text-gray-700">
+                <td key={column.key} className="p-2 px-5 text-gray-700 text-center">
                   {column.render(item)}
                 </td>
               ))}
             </tr>
           ))}
-          {Array.from({ length: limit - data.length }).map((_, index) => (
-            <tr
-              key={`empty-${index}`}
-              className="border-t"
-              style={{ height: `${rowHeight}px` }}
-            >
-              {columns.map((column) => (
-                <td key={column.key} className="p-2"></td>
-              ))}
-            </tr>
-          ))}
+          {data.length < limit &&
+            Array.from({ length: limit - data.length }).map((_, index) => (
+              <tr
+                key={`empty-${index}`}
+                className="border-t"
+                style={{ height: `${rowHeight}px` }}
+              >
+                {columns.map((column) => (
+                  <td key={column.key} className="p-2"></td>
+                ))}
+              </tr>
+            ))}
         </tbody>
       </table>
     </div>

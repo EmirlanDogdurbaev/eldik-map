@@ -6,7 +6,10 @@ const userSchema = z.object({
   id: z.string(),
   name: z.string(),
   email: z.string().email(),
-  number: z.string().optional(),
+  number: z
+    .string()
+    .optional()
+    .transform((val) => val ?? ""),
   role: z.enum(["dispetcher", "user", "driver", "admin"]),
 });
 
@@ -19,7 +22,10 @@ const paginatedUsersSchema = z.object({
       id: z.string(),
       name: z.string(),
       email: z.string().email(),
-      number: z.string().optional(),
+      number: z
+        .string()
+        .optional()
+        .transform((val) => val ?? ""),
       role: z.string(),
     })
   ),
@@ -94,7 +100,9 @@ export const usersApi = createApi({
       },
       transformResponse: (response: unknown) => {
         return userSchema.parse({
-          ...(typeof response === "object" && response !== null ? response : {}),
+          ...(typeof response === "object" && response !== null
+            ? response
+            : {}),
           role:
             (response as any).role.toLowerCase() === "dispatcher"
               ? "dispetcher"
@@ -121,7 +129,9 @@ export const usersApi = createApi({
       }),
       transformResponse: (response: unknown) => {
         return userSchema.parse({
-          ...(typeof response === "object" && response !== null ? response : {}),
+          ...(typeof response === "object" && response !== null
+            ? response
+            : {}),
           role:
             (response as any).role.toLowerCase() === "dispatcher"
               ? "dispetcher"
