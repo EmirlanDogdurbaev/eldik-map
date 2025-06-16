@@ -8,7 +8,7 @@ interface ModalProps {
   message: ReactNode;
   confirmText?: string;
   cancelText?: string;
-  isLoading?: boolean; // Новое проп для состояния загрузки
+  isLoading?: boolean; 
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -32,7 +32,7 @@ const Modal: React.FC<ModalProps> = ({
           <button
             onClick={onClose}
             className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-            disabled={isLoading} // Отключаем кнопку Отмена во время загрузки
+            disabled={isLoading} 
           >
             {cancelText}
           </button>

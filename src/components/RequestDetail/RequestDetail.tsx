@@ -17,7 +17,6 @@ interface Option {
   label: string;
 }
 
-// Статусы для преобразования
 const STATUS_MAP = {
   created: 0,
   approved: 1,

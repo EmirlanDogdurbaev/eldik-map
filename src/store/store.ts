@@ -5,6 +5,7 @@ import authReducer from "../services/authSlice";
 import { tripApi } from "../api/tripApi";
 import { usersApi } from "../api/usersApi";
 import { requestsApi } from "../api/requestsApi";
+import { carsApi } from "../api/carsApi";
 
 export const store = configureStore({
   reducer: {
@@ -13,13 +14,15 @@ export const store = configureStore({
     [tripApi.reducerPath]: tripApi.reducer,
     [usersApi.reducerPath]: usersApi.reducer,
     [requestsApi.reducerPath]: requestsApi.reducer,
+    [carsApi.reducerPath]: carsApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
       .concat(authApi.middleware)
       .concat(tripApi.middleware)
       .concat(usersApi.middleware)
-      .concat(requestsApi.middleware),
+      .concat(requestsApi.middleware)
+      .concat(carsApi.middleware),
 });
 
 setupListeners(store.dispatch);

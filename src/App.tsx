@@ -11,6 +11,7 @@ import AdminUsers from "./components/AdminUsers/AdminUsers";
 import CreateUser from "./components/CreateUser/CreateUser";
 import DispatcherDashboard from "./pages/Dispatcher/DispatcherDashboard";
 import RequestDetail from "./components/RequestDetail/RequestDetail";
+import Cars from "./components/Cars/Cars";
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={["dispetcher"]} />}>
           <Route path="/dispatcher" element={<DispatcherDashboard />} />
           <Route path="/requests/:id" element={<RequestDetail />} />
+          <Route path="/cars" element={<Cars />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["user"]} />}>

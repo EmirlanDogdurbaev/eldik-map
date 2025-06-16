@@ -67,7 +67,7 @@ export const requestsApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ["Requests"],
+  tagTypes: ["Requests", "Drivers"],
   endpoints: (builder) => ({
     getRequests: builder.query<
       PaginatedRequests,
@@ -116,12 +116,12 @@ export const requestsApi = createApi({
         result
           ? [
               ...result.results.map(({ id }) => ({
-                type: "Requests" as const,
+                type: "Drivers" as const,
                 id,
               })),
-              { type: "Requests" as const },
+              { type: "Drivers" as const },
             ]
-          : [{ type: "Requests" as const }],
+          : [{ type: "Drivers" as const }],
     }),
 
     updateRequest: builder.mutation<
