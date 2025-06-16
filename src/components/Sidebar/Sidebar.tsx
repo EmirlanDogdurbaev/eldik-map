@@ -35,16 +35,63 @@ type RouteItem = {
   user: string;
 };
 
-const tripSchema = z.object({
-  date: z.string().min(1, "Укажите дату"),
-  time: z.string().min(1, "Укажите время"),
-  goal: z
-    .string()
-    .min(1, "Укажите причину")
-    .max(500, "Причина слишком длинная"),
-  departure: z.string().min(1, "Укажите точку отправления"),
-  destination: z.string().min(1, "Укажите точку назначения"),
-});
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+const coordinateRegex = /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/;
+
+const tripSchema = z
+  .object({
+    date: z.string().min(1, "Укажите дату"),
+    time: z.string().min(1, "Укажите время"),
+    goal: z
+      .string()
+      .min(1, "Укажите причину")
+      .max(500, "Причина слишком длинная"),
+
+    // разрешаем адрес ИЛИ координаты
+    departure: z
+      .string()
+      .refine((val) => val.length > 3 || coordinateRegex.test(val), {
+        message: "Введите адрес или координаты отправления",
+      }),
+    destination: z
+      .string()
+      .refine((val) => val.length > 3 || coordinateRegex.test(val), {
+        message: "Введите адрес или координаты назначения",
+      }),
+  })
+  .refine(
+    (data) => {
+      const selectedDate = new Date(data.date);
+      selectedDate.setHours(0, 0, 0, 0);
+      return selectedDate >= today;
+    },
+    {
+      path: ["date"],
+      message: "Дата не может быть в прошлом",
+    }
+  )
+  .refine(
+    (data) => {
+      const selectedDate = new Date(data.date);
+      const now = new Date();
+
+      const [hours, minutes] = data.time.split(":").map(Number);
+      const selectedDateTime = new Date(selectedDate);
+      selectedDateTime.setHours(hours, minutes, 0, 0);
+
+      if (selectedDate.toDateString() === now.toDateString()) {
+        return selectedDateTime > now;
+      }
+
+      return true;
+    },
+    {
+      path: ["time"],
+      message: "Время должно быть в настоящем или в будущем",
+    }
+  );
 
 const Sidebar: React.FC<SidebarProps> = ({
   className,
@@ -61,22 +108,51 @@ const Sidebar: React.FC<SidebarProps> = ({
     formState: { errors },
     reset,
     setValue,
+    getValues,
   } = useForm<TripFormData>({
     resolver: zodResolver(tripSchema),
   });
 
   const [createTrip, { isLoading, error }] = useCreateTripMutation();
-  const [selectedType, setSelectedType] = useState<string>("car");
+  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [isTransportSelected, setIsTransportSelected] = useState(false);
+
   const [routes, setRoutes] = useState<RouteItem[]>(() => {
     const stored = localStorage.getItem("routes");
     return stored ? JSON.parse(stored) : [];
   });
+
+  const buildSingleRouteFromForm = (): RouteItem | null => {
+    const values = getValues(); // from react-hook-form
+    if (
+      !values.date ||
+      !values.time ||
+      !values.goal ||
+      !values.departure ||
+      !values.destination ||
+      !departure ||
+      !destination
+    ) {
+      return null;
+    }
+    if (!selectedType) return null;
+    return {
+      goal: values.goal,
+      departure: values.departure,
+      destination: values.destination,
+      time: values.time,
+      date: values.date,
+      vehicleType: selectedType ?? "",
+      user: localStorage.getItem("user_id") || "",
+    };
+  };
 
   useEffect(() => {
     localStorage.setItem("routes", JSON.stringify(routes));
   }, [routes]);
 
   const handleAddRoute = handleSubmit((data) => {
+    console.log("[FORM SUBMIT DATA]", data); // 👈 лог
     if (!departure || !destination) {
       alert("Укажите координаты отправления и назначения.");
       return;
@@ -93,7 +169,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       destination: data.destination,
       time: data.time,
       date: data.date,
-      vehicleType: selectedType,
+      vehicleType: selectedType ?? "",
       user: localStorage.getItem("user_id") || "",
     };
 
@@ -103,10 +179,23 @@ const Sidebar: React.FC<SidebarProps> = ({
     setDestination(null);
   });
 
+  const coordsStore = JSON.parse(localStorage.getItem("route_coords") || "{}");
+  coordsStore[routes.length] = {
+    departure,
+    destination,
+  };
+  localStorage.setItem("route_coords", JSON.stringify(coordsStore));
+
   const handleSendRoutes = async () => {
-    if (routes.length === 0) {
-      alert("Добавьте хотя бы один маршрут.");
-      return;
+    let finalRoutes = [...routes];
+
+    if (finalRoutes.length === 0) {
+      const singleRoute = buildSingleRouteFromForm();
+      if (!singleRoute) {
+        alert("Заполните все поля или добавьте маршрут.");
+        return;
+      }
+      finalRoutes = [singleRoute];
     }
 
     const userId = localStorage.getItem("user_id");
@@ -115,23 +204,51 @@ const Sidebar: React.FC<SidebarProps> = ({
       return;
     }
 
-    const tripDate = routes[0]?.date; // предполагаем, что у всех маршрутов одинаковая дата
-    const cleanRoutes = routes.map(({ date, user, ...rest }) => rest); // удаляем лишнее
+    const coordsStore = JSON.parse(
+      localStorage.getItem("route_coords") || "{}"
+    );
+
+    const payload = finalRoutes.map((route, index) => {
+      const coords = coordsStore[index] || {};
+
+      return {
+        date: route.date,
+        user: userId,
+        routes: [
+          {
+            goal: route.goal,
+            departure: route.departure,
+            destination: route.destination,
+            time: route.time,
+            departure_coordinates: coords.departure
+              ? [
+                  coords.departure.lat.toString(),
+                  coords.departure.lng.toString(),
+                ]
+              : [],
+            destination_coordinates: coords.destination
+              ? [
+                  coords.destination.lat.toString(),
+                  coords.destination.lng.toString(),
+                ]
+              : [],
+          },
+        ],
+      };
+    });
 
     try {
-      await createTrip({
-        date: tripDate,
-        user: userId,
-        routes: cleanRoutes,
-      }).unwrap();
+      // ⬇️ Отправляем массив объектов — один маршрут на один объект
+      await createTrip(payload).unwrap();
 
-      alert("Поездка успешно отправлена!");
+      alert("Поездки успешно отправлены!");
       setRoutes([]);
       localStorage.removeItem("routes");
+      localStorage.removeItem("route_coords");
       reset();
       setDeparture(null);
       setDestination(null);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Ошибка отправки:", err);
       alert("Ошибка при отправке маршрутов.");
     }
@@ -142,6 +259,28 @@ const Sidebar: React.FC<SidebarProps> = ({
     setRoutes(updatedRoutes);
     localStorage.setItem("routes", JSON.stringify(updatedRoutes));
   };
+
+  const handleSelectRoute = (index: number) => {
+    const coordsStore = JSON.parse(
+      localStorage.getItem("route_coords") || "{}"
+    );
+    const coords = coordsStore[index];
+    if (!coords) return;
+
+    setDeparture(coords.departure);
+    setDestination(coords.destination);
+  };
+
+  const canSend =
+    isTransportSelected &&
+    (routes.length > 0 ||
+      (getValues("date") &&
+        getValues("time") &&
+        getValues("goal") &&
+        getValues("departure") &&
+        getValues("destination") &&
+        departure &&
+        destination));
 
   return (
     <div
@@ -232,9 +371,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <button
                   key={vehicle.id}
                   type="button"
-                  onClick={() => setSelectedType(vehicle.id)}
-                  className={`flex-1 flex flex-col items-center py-3 px-2 rounded-lg border ${
-                    selectedType === vehicle.id
+                  onClick={() => {
+                    setSelectedType(vehicle.id);
+                    setIsTransportSelected(true);
+                  }}
+                  className={`flex-1 flex flex-col items-center py-3 px-2 rounded-lg border cursor-pointer ${
+                    selectedType === vehicle.id && isTransportSelected
                       ? "bg-black text-white border-black"
                       : "bg-gray-100 text-gray-800 border-gray-300"
                   } transition-all`}
@@ -249,7 +391,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               <Button
                 type="button"
                 onClick={handleAddRoute}
-                className="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-1"
+                className="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 Добавить маршрут
@@ -258,11 +400,12 @@ const Sidebar: React.FC<SidebarProps> = ({
               {routes.map((route, index) => (
                 <div
                   key={index}
-                  className="w-full max-w-[420px] p-3 border rounded bg-gray-50 text-sm space-y-1 text-left relative overflow-hidden"
+                  onClick={() => handleSelectRoute(index)}
+                  className="w-full max-w-[420px] p-3 border rounded bg-gray-50 text-sm space-y-1 text-left relative overflow-hidden cursor-pointer"
                 >
                   <button
                     type="button"
-                    className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-xs"
+                    className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-xs cursor-pointer"
                     onClick={() => handleRemoveRoute(index)}
                   >
                     Удалить
@@ -285,7 +428,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               <Button
                 type="button"
                 onClick={handleSendRoutes}
-                disabled={isLoading || routes.length === 0}
+                disabled={isLoading || !canSend}
                 className="w-full bg-blue-500 text-white p-3 rounded-md hover:bg-blue-600 disabled:opacity-50"
               >
                 {isLoading ? "Отправка..." : "Отправиться в путь"}

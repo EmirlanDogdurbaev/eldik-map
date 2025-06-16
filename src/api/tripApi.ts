@@ -8,7 +8,7 @@ export const tripApi = createApi({
     import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api/"
   ),
   endpoints: (builder) => ({
-    createTrip: builder.mutation<TripResponse, TripRequest>({
+    createTrip: builder.mutation<TripResponse, TripRequest[]>({
       query: (data) => ({
         url: "requests/create/",
         method: "POST",
