@@ -114,7 +114,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   });
 
   const [createTrip, { isLoading, error }] = useCreateTripMutation();
-  const [selectedType, setSelectedType] = useState<string>("car");
+  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [isTransportSelected, setIsTransportSelected] = useState(false);
+
   const [routes, setRoutes] = useState<RouteItem[]>(() => {
     const stored = localStorage.getItem("routes");
     return stored ? JSON.parse(stored) : [];
@@ -133,29 +135,17 @@ const Sidebar: React.FC<SidebarProps> = ({
     ) {
       return null;
     }
-
+    if (!selectedType) return null;
     return {
       goal: values.goal,
       departure: values.departure,
       destination: values.destination,
       time: values.time,
       date: values.date,
-      vehicleType: selectedType,
+      vehicleType: selectedType ?? "",
       user: localStorage.getItem("user_id") || "",
     };
   };
-
-  // useEffect(() => {
-  //   setDeparture(departure || null); // 👈 обновляем карту
-  // }, [departure]);
-
-  // useEffect(() => {
-  //   setDestination(destination || null); // 👈 обновляем карту
-  // }, [destination]);
-
-  // useEffect(() => {
-  //   console.log("[FORM ERRORS]", errors);
-  // }, [errors]);
 
   useEffect(() => {
     localStorage.setItem("routes", JSON.stringify(routes));
@@ -179,7 +169,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       destination: data.destination,
       time: data.time,
       date: data.date,
-      vehicleType: selectedType,
+      vehicleType: selectedType ?? "",
       user: localStorage.getItem("user_id") || "",
     };
 
@@ -214,42 +204,51 @@ const Sidebar: React.FC<SidebarProps> = ({
       return;
     }
 
-    const tripDate = finalRoutes[0]?.date;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const cleanRoutes = finalRoutes.map((route, index) => {
-      const coordsStore = JSON.parse(
-        localStorage.getItem("route_coords") || "{}"
-      );
+    const coordsStore = JSON.parse(
+      localStorage.getItem("route_coords") || "{}"
+    );
+
+    const payload = finalRoutes.map((route, index) => {
       const coords = coordsStore[index] || {};
 
       return {
-        ...route,
-        departure_coordinates: coords.departure
-          ? [coords.departure.lat.toString(), coords.departure.lng.toString()]
-          : [],
-        destination_coordinates: coords.destination
-          ? [
-              coords.destination.lat.toString(),
-              coords.destination.lng.toString(),
-            ]
-          : [],
+        date: route.date,
+        user: userId,
+        routes: [
+          {
+            goal: route.goal,
+            departure: route.departure,
+            destination: route.destination,
+            time: route.time,
+            departure_coordinates: coords.departure
+              ? [
+                  coords.departure.lat.toString(),
+                  coords.departure.lng.toString(),
+                ]
+              : [],
+            destination_coordinates: coords.destination
+              ? [
+                  coords.destination.lat.toString(),
+                  coords.destination.lng.toString(),
+                ]
+              : [],
+          },
+        ],
       };
     });
 
     try {
-      await createTrip({
-        date: tripDate,
-        user: userId,
-        routes: cleanRoutes,
-      }).unwrap();
+      // ⬇️ Отправляем массив объектов — один маршрут на один объект
+      await createTrip(payload).unwrap();
 
-      alert("Поездка успешно отправлена!");
+      alert("Поездки успешно отправлены!");
       setRoutes([]);
       localStorage.removeItem("routes");
+      localStorage.removeItem("route_coords");
       reset();
       setDeparture(null);
       setDestination(null);
-    } catch (err: unknown) {
+    } catch (err) {
       console.error("Ошибка отправки:", err);
       alert("Ошибка при отправке маршрутов.");
     }
@@ -271,6 +270,18 @@ const Sidebar: React.FC<SidebarProps> = ({
     setDeparture(coords.departure);
     setDestination(coords.destination);
   };
+
+  const canSend =
+    isTransportSelected &&
+    (routes.length > 0 ||
+      (getValues("date") &&
+        getValues("time") &&
+        getValues("goal") &&
+        getValues("departure") &&
+        getValues("destination") &&
+        departure &&
+        destination));
+
   return (
     <div
       className={`${className} shadow min-w-96 max-h-[100dvh] bg-white overflow-y-auto`}
@@ -360,9 +371,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <button
                   key={vehicle.id}
                   type="button"
-                  onClick={() => setSelectedType(vehicle.id)}
+                  onClick={() => {
+                    setSelectedType(vehicle.id);
+                    setIsTransportSelected(true);
+                  }}
                   className={`flex-1 flex flex-col items-center py-3 px-2 rounded-lg border cursor-pointer ${
-                    selectedType === vehicle.id
+                    selectedType === vehicle.id && isTransportSelected
                       ? "bg-black text-white border-black"
                       : "bg-gray-100 text-gray-800 border-gray-300"
                   } transition-all`}
@@ -414,19 +428,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               <Button
                 type="button"
                 onClick={handleSendRoutes}
-                disabled={
-                  isLoading &&
-                  !(
-                    routes.length > 0 ||
-                    (getValues("date") &&
-                      getValues("time") &&
-                      getValues("goal") &&
-                      getValues("departure") &&
-                      getValues("destination") &&
-                      departure &&
-                      destination)
-                  )
-                }
+                disabled={isLoading || !canSend}
                 className="w-full bg-blue-500 text-white p-3 rounded-md hover:bg-blue-600 disabled:opacity-50"
               >
                 {isLoading ? "Отправка..." : "Отправиться в путь"}
