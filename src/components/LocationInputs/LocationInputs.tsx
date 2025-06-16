@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { MapPin, X } from "lucide-react";
 import axios from "axios";
-import debounce from "lodash.debounce"; 
+import debounce from "lodash.debounce";
 import Input from "../../ui/Input";
 
 interface NominatimAddress {
@@ -321,7 +321,12 @@ const LocationInputs: React.FC<LocationInputsProps> = ({
             onClick={() => setSelecting(type)}
             onMouseDown={(e) => e.preventDefault()}
           >
-            <MapPin size={20} />
+            <MapPin
+              size={20}
+              className={
+                type === "departure" ? "text-blue-600" : "text-red-600"
+              }
+            />
           </button>
           {errors[type] && errors[type].message && (
             <p className="text-red-500 text-sm mt-1">{errors[type].message}</p>

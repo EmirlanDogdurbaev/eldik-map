@@ -5,6 +5,7 @@ import "leaflet-routing-machine";
 import "leaflet/dist/leaflet.css";
 import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
 import Sidebar from "../components/Sidebar/Sidebar";
+import { blueIcon, redIcon } from "../ui/CoordinateIcons";
 
 interface MapEffectProps {
   departure: { lat: number; lng: number } | null;
@@ -106,8 +107,10 @@ const MapEffect: React.FC<MapEffectProps> = ({
     <>
       {departure && (
         <Marker
+          key={`departure-${departure.lat}-${departure.lng}`}
           position={[departure.lat, departure.lng]}
           draggable={true}
+          icon={blueIcon}
           eventHandlers={{ dragend: handleDepartureDragEnd }}
         >
           <Popup>Точка отправления</Popup>
@@ -115,8 +118,10 @@ const MapEffect: React.FC<MapEffectProps> = ({
       )}
       {destination && (
         <Marker
+          key={`destination-${destination.lat}-${destination.lng}`}
           position={[destination.lat, destination.lng]}
           draggable={true}
+          icon={redIcon}
           eventHandlers={{ dragend: handleDestinationDragEnd }}
         >
           <Popup>Точка назначения</Popup>
