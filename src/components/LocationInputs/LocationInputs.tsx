@@ -189,6 +189,7 @@ const LocationInputs: React.FC<LocationInputsProps> = ({
         setter({ lat: parseFloat(place.lat), lng: parseFloat(place.lon) });
         setQueries((q) => ({ ...q, [type]: place.display_name }));
         setValue(type, place.display_name);
+        console.log(`[SET VALUE from geocode] ${type}:`, place.display_name);
       }
     } catch (err) {
       console.error("Ошибка при поиске местоположения:", err);
@@ -200,6 +201,7 @@ const LocationInputs: React.FC<LocationInputsProps> = ({
     type: "departure" | "destination"
   ) => {
     const value = e.target.value;
+    console.log(`[INPUT CHANGE] ${type}:`, value);
     setQueries((q) => ({ ...q, [type]: value }));
     setValue(type, value);
 
