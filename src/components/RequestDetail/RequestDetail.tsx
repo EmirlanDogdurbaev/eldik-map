@@ -4,6 +4,7 @@ import {
   useGetRequestByIdQuery,
   type Route,
   useGetDriversQuery,
+  useGetDriverByNameAndRoleQuery,
   useUpdateRequestMutation,
 } from "../../api/requestsApi";
 import { toast, ToastContainer } from "react-toastify";
@@ -11,6 +12,7 @@ import Button from "../../ui/Button";
 import CustomSelect from "../../ui/Select";
 import RejectModal from "../../ui/RejectModal";
 import { ArrowLeft } from "lucide-react";
+import { skipToken } from "@reduxjs/toolkit/query";
 
 interface Option {
   value: string;
@@ -27,89 +29,150 @@ const RequestDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const {
     data: request,
-    isLoading,
-    error,
+    isLoading: isRequestLoading,
+    error: requestError,
     refetch,
   } = useGetRequestByIdQuery(id || "");
   const [updateRequest, { isLoading: isUpdating }] = useUpdateRequestMutation();
-  const { data: driversData } = useGetDriversQuery({ limit: 100 });
+  const { data: driversData, isLoading: isDriversLoading } = useGetDriversQuery(
+    {
+      limit: 100,
+    }
+  );
+
+  console.log("Загрузка данных заявки:", driversData);
 
   const [selectedDrivers, setSelectedDrivers] = useState<
-    Record<string, Option>
+    Record<string, Option | null>
   >({});
   const [comment, setComment] = useState("");
   const [showReject, setShowReject] = useState(false);
 
   const drivers: Option[] = (driversData?.results || []).map((d) => ({
-    value: d.id,
+    value: d.user,
     label: d.user,
   }));
 
-  const handleApprove = async () => {
-    const driverIds = Object.fromEntries(
-      Object.entries(selectedDrivers).map(([routeId, driver]) => [
-        routeId,
-        driver.value,
-      ])
-    );
+  const selectedDriverName = Object.values(selectedDrivers)[0]?.label;
+  const {
+    data: driverData,
+    isLoading: isDriverIdLoading,
+    error: driverIdError,
+  } = useGetDriverByNameAndRoleQuery(
+    selectedDriverName
+      ? { name: selectedDriverName, role: "driver" }
+      : skipToken
+  );
 
-    if (!Object.keys(driverIds).length) {
+  const driverId = driverData?.results?.[0]?.id;
+
+  console.log("Список водителей:", drivers);
+  console.log("Выбранные водители:", selectedDrivers);
+  console.log("Данные водителя из /users/:", driverData);
+  console.log("ID водителя:", driverId);
+
+  const handleApprove = async () => {
+    if (request?.status === STATUS_MAP.approved) {
+      toast.info("Заявка уже одобрена", { position: "top-right" });
+      return;
+    }
+
+    const driverNames = Object.values(selectedDrivers)
+      .filter((driver): driver is Option => driver !== null)
+      .map((driver) => driver.label);
+
+    if (driverNames.length === 0) {
+      toast.error("Выберите водителя для маршрута", { position: "top-right" });
+      return;
+    }
+
+    const uniqueDriverNames = new Set(driverNames);
+    if (uniqueDriverNames.size > 1) {
+      toast.error("Для всех маршрутов должен быть выбран один водитель", {
+        position: "top-right",
+      });
+      return;
+    }
+
+    const allRoutesHaveDrivers =
+      request?.routes?.every((route) => selectedDrivers[route.id]) ?? false;
+
+    if (!allRoutesHaveDrivers) {
       toast.error("Выберите водителя для каждого маршрута", {
         position: "top-right",
       });
       return;
     }
 
+    if (!driverId) {
+      toast.error("ID водителя не найден в базе данных", {
+        position: "top-right",
+      });
+      console.error("Ошибка: driverId не определен");
+      return;
+    }
+
     try {
+      console.log("Отправляем запрос updateRequest:", {
+        id: id || "",
+        status: STATUS_MAP.approved,
+        driver: driverId,
+      });
+
       await updateRequest({
         id: id || "",
         status: STATUS_MAP.approved,
-        drivers: driverIds,
+        driver: driverId,
       }).unwrap();
+
       toast.success("Заявка одобрена", { position: "top-right" });
       setSelectedDrivers({});
       await refetch();
     } catch (err: any) {
-      toast.error(err.data?.detail || "Ошибка при подтверждении", {
-        position: "top-right",
-      });
-      console.error("Approve error:", err);
+      console.error("Ошибка при одобрении:", err);
+      const errorMessage =
+        err.data?.driver?.[0] || err.data?.detail || "Ошибка при подтверждении";
+      toast.error(errorMessage, { position: "top-right" });
     }
   };
 
   const handleReject = useCallback(
     async (reason: string) => {
-      // Принимаем reason напрямую
-      console.log("Attempting to reject with reason:", reason);
       try {
-        console.log("Sending reject request with reason:", reason);
-        const result = await updateRequest({
+        console.log("Отправляем запрос на отклонение:", {
           id: id || "",
           status: STATUS_MAP.rejected,
-          comments: reason, // Используем переданный reason
+          comments: reason,
+        });
+
+        await updateRequest({
+          id: id || "",
+          status: STATUS_MAP.rejected,
+          comments: reason,
         }).unwrap();
-        console.log("Reject success, result:", result);
         toast.success("Заявка отклонена", { position: "top-right" });
         setComment("");
         setShowReject(false);
         await refetch();
       } catch (err: any) {
         console.error("Reject error:", err);
-        toast.error(err.data?.detail || "Ошибка при отклонении", {
-          position: "top-right",
-        });
+        const errorMessage = err.data?.detail || "Ошибка при отклонении";
+        toast.error(errorMessage, { position: "top-right" });
       }
     },
     [id, updateRequest, refetch]
-  ); // Убрали comment из зависимостей
+  );
 
-  const allDriversSelected =
-    request?.routes?.every((r) => selectedDrivers[r.id]) ?? false;
-
-  if (isLoading)
+  if (isRequestLoading || isDriversLoading)
     return <div className="flex justify-center p-4">Загрузка...</div>;
-  if (error || !request)
-    return <div className="text-red-500 p-4">Ошибка загрузки</div>;
+  if (requestError || !request || driverIdError)
+    return (
+      <div className="text-red-500 p-4">
+        {driverIdError
+          ? "Ошибка загрузки данных водителя"
+          : "Ошибка загрузки данных заявки"}
+      </div>
+    );
 
   return (
     <div className="p-6 min-w-7xl mx-auto">
@@ -137,9 +200,7 @@ const RequestDetail: React.FC = () => {
         </p>
         <p>
           <strong>Водитель:</strong>{" "}
-          {request.driver
-            ? drivers.find((d) => d.value === request.driver)?.label
-            : "Не назначен"}
+          {request.driver}
         </p>
       </div>
 
@@ -177,7 +238,7 @@ const RequestDetail: React.FC = () => {
                     onChange={(newValue) =>
                       setSelectedDrivers((prev) => ({
                         ...prev,
-                        [route.id]: newValue as Option,
+                        [route.id]: newValue as Option | null,
                       }))
                     }
                     placeholder="Выберите водителя"
@@ -192,14 +253,25 @@ const RequestDetail: React.FC = () => {
       <div className="mt-4 space-x-2 flex justify-end">
         <Button
           onClick={handleApprove}
-          disabled={isLoading || !allDriversSelected}
+          disabled={
+            isRequestLoading ||
+            isDriversLoading ||
+            isDriverIdLoading ||
+            isUpdating ||
+            request?.status === STATUS_MAP.approved
+          }
           className="bg-green-500 hover:bg-green-600 py-4 px-6 text-white"
         >
           Одобрить
         </Button>
         <Button
           onClick={() => setShowReject(true)}
-          disabled={isLoading}
+          disabled={
+            isRequestLoading ||
+            isDriversLoading ||
+            isDriverIdLoading ||
+            isUpdating
+          }
           className="bg-red-500 hover:bg-red-600 py-4 px-6 text-white"
         >
           Отклонить
