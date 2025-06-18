@@ -35,6 +35,7 @@ const Input = (props: InputProps) => {
   } = props;
   return (
     <input
+      // autoComplete="off"
       id={id}
       name={name}
       type={type}
@@ -43,7 +44,7 @@ const Input = (props: InputProps) => {
       required={required}
       value={value}
       onChange={onChange}
-      className={`p-2 border-black border rounded-md focus:outline-none focus:ring-2 focus:border-blue-400 focus:outline-0 ${className}`}
+      className={`w-3xs p-2 border-black border rounded-md focus:outline-none focus:ring-2 focus:border-blue-400 focus:outline-0 ${className}`}
     />
   );
 };
