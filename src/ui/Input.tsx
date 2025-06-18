@@ -35,7 +35,7 @@ const Input = (props: InputProps) => {
   } = props;
   return (
     <input
-      // autoComplete="off"
+      autoComplete="off"
       id={id}
       name={name}
       type={type}

@@ -142,6 +142,86 @@ const LocationInputs: React.FC<LocationInputsProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    const fetchAddress = async () => {
+      if (departure?.lat && departure?.lng) {
+        try {
+          const { data } = await axios.get(
+            "https://nominatim.openstreetmap.org/reverse",
+            {
+              params: {
+                lat: departure.lat,
+                lon: departure.lng,
+                format: "json",
+                addressdetails: 1,
+                countrycodes: "kg",
+              },
+            }
+          );
+          const result = data as NominatimPlace;
+          if (result.display_name) {
+            setQueries((q) => ({ ...q, departure: result.display_name }));
+            setValue("departure", result.display_name);
+          } else {
+            const coords = `${departure.lat.toFixed(
+              4
+            )}, ${departure.lng.toFixed(4)}`;
+            setQueries((q) => ({ ...q, departure: coords }));
+            setValue("departure", coords);
+          }
+        } catch {
+          const coords = `${departure.lat.toFixed(4)}, ${departure.lng.toFixed(
+            4
+          )}`;
+          setQueries((q) => ({ ...q, departure: coords }));
+          setValue("departure", coords);
+        }
+      }
+    };
+    fetchAddress();
+    // eslint-disable-next-line
+  }, [departure]);
+
+  useEffect(() => {
+    const fetchAddress = async () => {
+      if (destination?.lat && destination?.lng) {
+        try {
+          const { data } = await axios.get(
+            "https://nominatim.openstreetmap.org/reverse",
+            {
+              params: {
+                lat: destination.lat,
+                lon: destination.lng,
+                format: "json",
+                addressdetails: 1,
+                countrycodes: "kg",
+              },
+            }
+          );
+          const result = data as NominatimPlace;
+          if (result.display_name) {
+            setQueries((q) => ({ ...q, destination: result.display_name }));
+            setValue("destination", result.display_name);
+          } else {
+            const coords = `${destination.lat.toFixed(
+              4
+            )}, ${destination.lng.toFixed(4)}`;
+            setQueries((q) => ({ ...q, destination: coords }));
+            setValue("destination", coords);
+          }
+        } catch {
+          const coords = `${destination.lat.toFixed(
+            4
+          )}, ${destination.lng.toFixed(4)}`;
+          setQueries((q) => ({ ...q, destination: coords }));
+          setValue("destination", coords);
+        }
+      }
+    };
+    fetchAddress();
+    // eslint-disable-next-line
+  }, [destination]);
+
   // ======= Fetch подсказок только по Кыргызстану =======
   const fetchSuggestions = async (
     type: "departure" | "destination",
