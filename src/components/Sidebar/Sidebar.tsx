@@ -8,6 +8,7 @@ import { useCreateTripMutation } from "../../api/tripApi";
 import LocationInputs from "../LocationInputs/LocationInputs";
 import { Car, Truck, Bus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
+import Modal from "../../ui/Modal";
 
 const vehicleTypes = [
   { id: "car", label: "Легковая", icon: <Car className="w-5 h-5" /> },
@@ -103,6 +104,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   setSelecting,
 }) => {
   const {
+    control,
     register,
     handleSubmit,
     formState: { errors },
@@ -116,6 +118,11 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [createTrip, { isLoading, error }] = useCreateTripMutation();
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [isTransportSelected, setIsTransportSelected] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalMessage, setModalMessage] = useState<React.ReactNode>("");
+  const [modalTitle, setModalTitle] = useState("Оповещение");
+  const [clearInputTrigger, setClearInputTrigger] = useState(0);
 
   const [routes, setRoutes] = useState<RouteItem[]>(() => {
     const stored = localStorage.getItem("routes");
@@ -177,6 +184,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     reset();
     setDeparture(null);
     setDestination(null);
+    setSelectedType(null);
+    setClearInputTrigger((prev) => prev + 1);
   });
 
   const coordsStore = JSON.parse(localStorage.getItem("route_coords") || "{}");
@@ -237,20 +246,44 @@ const Sidebar: React.FC<SidebarProps> = ({
       };
     });
 
+    // Показать модалку загрузки
+    setModalTitle("Отправка...");
+    setModalMessage("Подождите, происходит отправка маршрутов.");
+    setModalLoading(true);
+    setModalOpen(true);
+
     try {
-      // ⬇️ Отправляем массив объектов — один маршрут на один объект
       await createTrip(payload).unwrap();
 
-      alert("Поездки успешно отправлены!");
+      setModalTitle("Успешно!");
+      setModalMessage("Поездки успешно отправлены.");
+      setModalLoading(false);
+
       setRoutes([]);
       localStorage.removeItem("routes");
       localStorage.removeItem("route_coords");
       reset();
       setDeparture(null);
       setDestination(null);
+
+      setSelectedType(null);
+      setIsTransportSelected(false);
+      setClearInputTrigger((prev) => prev + 1);
     } catch (err) {
       console.error("Ошибка отправки:", err);
-      alert("Ошибка при отправке маршрутов.");
+      setModalTitle("Ошибка");
+      setModalMessage("Не удалось отправить маршруты. Повторите попытку.");
+      setModalLoading(false);
+    }
+  };
+
+  const handleSendButton = async () => {
+    if (routes.length > 0) {
+      await handleSendRoutes();
+    } else {
+      handleSubmit(async () => {
+        await handleSendRoutes();
+      })();
     }
   };
 
@@ -287,7 +320,10 @@ const Sidebar: React.FC<SidebarProps> = ({
       className={`${className} shadow min-w-96 max-h-[100dvh] bg-white overflow-y-auto`}
     >
       <aside className="p-4 sm:p-6 flex flex-col gap-6">
-        <form className="flex flex-col gap-4">
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={handleSubmit(() => handleSendRoutes())}
+        >
           <h4 className="text-lg font-semibold">Выберите координаты</h4>
 
           <LocationInputs
@@ -297,9 +333,10 @@ const Sidebar: React.FC<SidebarProps> = ({
             setDestination={setDestination}
             selecting={selecting}
             setSelecting={setSelecting}
-            register={register}
             errors={errors}
             setValue={setValue}
+            clearTrigger={clearInputTrigger}
+            control={control}
           />
 
           <div>
@@ -427,7 +464,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
               <Button
                 type="button"
-                onClick={handleSendRoutes}
+                onClick={handleSendButton}
                 disabled={isLoading || !canSend}
                 className="w-full bg-blue-500 text-white p-3 rounded-md hover:bg-blue-600 disabled:opacity-50"
               >
@@ -437,6 +474,16 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </form>
       </aside>
+
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onConfirm={() => setModalOpen(false)}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="Закрыть"
+        isLoading={modalLoading}
+      />
     </div>
   );
 };
