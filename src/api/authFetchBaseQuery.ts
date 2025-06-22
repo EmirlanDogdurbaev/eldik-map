@@ -20,10 +20,13 @@ export const authFetchBaseQuery = (
     },
   });
 
+  let isRedirecting = false; // Флаг для предотвращения повторных редиректов
+
   return async (args, api, extraOptions) => {
     const result = await baseQuery(args, api, extraOptions);
 
-    if (result.error && result.error.status === 401) {
+    if (result.error && result.error.status === 401 && !isRedirecting) {
+      isRedirecting = true; // Устанавливаем флаг
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
       localStorage.removeItem("user");
@@ -31,6 +34,10 @@ export const authFetchBaseQuery = (
       localStorage.removeItem("role");
       localStorage.removeItem("user_id");
       window.location.href = "/login";
+      // Сбрасываем флаг через таймаут, чтобы разрешить будущие редиректы
+      setTimeout(() => {
+        isRedirecting = false;
+      }, 1000);
     }
 
     return result;

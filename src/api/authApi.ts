@@ -53,24 +53,34 @@ export const authApi = createApi({
           const { data } = await queryFulfilled;
           localStorage.setItem("access_token", data.access);
           localStorage.setItem("refresh_token", data.refresh);
-          toast.success("Login successful!");
+          console.log("Токен сохранён:", localStorage.getItem("access_token")); // Для отладки
+          toast.success("Успешный вход!");
 
           await deleteFCMToken();
           const currentToken = await requestForToken();
-          if (currentToken) {
-            await dispatch(
-              authApi.endpoints.saveFCMToken.initiate({
-                fcm_token: currentToken,
-              })
-            ).unwrap();
+          console.log("FCM токен:", currentToken);
+          if (
+            currentToken &&
+            typeof currentToken === "string" &&
+            currentToken.length > 0
+          ) {
+            try {
+              await dispatch(
+                authApi.endpoints.saveFCMToken.initiate({
+                  fcm_token: currentToken,
+                })
+              ).unwrap();
+              toast.success("FCM токен сохранён!");
+            } catch (fcmError) {
+              console.error("Ошибка сохранения FCM токена:", fcmError);
+              toast.error("Не удалось сохранить FCM токен");
+            }
           } else {
-            toast.warn(
-              "Failed to generate FCM token. Please allow notifications."
-            );
+            toast.warn("Не удалось получить FCM токен. Разрешите уведомления.");
           }
         } catch (error) {
-          console.error("FCM token error:", error);
-          toast.error("Login failed");
+          console.error("Ошибка логина:", error);
+          toast.error("Ошибка входа");
         }
       },
     }),
@@ -121,15 +131,23 @@ export const authApi = createApi({
     }),
     saveFCMToken: builder.mutation<SaveFCMTokenResponse, { fcm_token: string }>(
       {
-        query: (data) => ({
-          url: "save-fcm-token/",
-          method: "POST",
-          body: data,
-        }),
-        transformErrorResponse: (response) => ({
-          status: response.status,
-          data: response.data,
-        }),
+        query: (data) => {
+          console.log("Отправка saveFCMToken:", data); // Для отладки
+          return {
+            url: "save-fcm-token/",
+            method: "POST",
+            body: data,
+          };
+        },
+        transformErrorResponse: (response) => {
+          console.error("Ошибка saveFCMToken:", response); // Для отладки
+          toast.error(`Ошибка сохранения FCM токена: `);
+          return {
+            status: response.status,
+            data: response.data,
+          };
+        },
+        extraOptions: { maxRetries: 0 }, // Отключаем ретрай
       }
     ),
   }),
