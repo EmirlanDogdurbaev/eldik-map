@@ -159,10 +159,17 @@ const MapPage: React.FC = () => {
         selecting={selecting}
         setSelecting={setSelecting}
       />
+
       <MapContainer
         style={{ height: "100%", minWidth: "100%" }}
         zoom={13}
         zoomControl={false}
+        center={[42.87, 74.66]} // Бишкек по центру
+        maxBounds={[
+          [39.16, 69.2],
+          [43.3, 80.3],
+        ]} // ограничение по bbox Кыргызстана
+        maxBoundsViscosity={1.0} // 1.0 = строгое ограничение, 0 — мягкое
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
