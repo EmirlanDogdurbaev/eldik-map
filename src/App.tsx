@@ -12,10 +12,14 @@ import CreateUser from "./components/CreateUser/CreateUser";
 import DispatcherDashboard from "./pages/Dispatcher/DispatcherDashboard";
 import RequestDetail from "./components/RequestDetail/RequestDetail";
 import Cars from "./components/Cars/Cars";
+import { useFirebaseMessaging } from "./ui/useFirebaseMessaging";
+import { ToastContainer } from "react-toastify";
 
 function App() {
+  useFirebaseMessaging();
   return (
     <Layout>
+      <ToastContainer position="top-right" autoClose={5000} />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
