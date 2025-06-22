@@ -10,7 +10,7 @@ interface Option {
 interface SelectProps {
   options: Option[];
   value?: Option | Option[] | null;
-  onChange: (value: Option | Option[] | null) => void;
+  onChange: (value: SingleValue<Option> | MultiValue<Option>) => void;
   placeholder?: string;
   isMulti?: boolean;
 }
@@ -23,11 +23,7 @@ const CustomSelect: React.FC<SelectProps> = ({
   isMulti = false,
 }) => {
   const handleChange = (newValue: SingleValue<Option> | MultiValue<Option>) => {
-    if (isMulti) {
-      onChange(newValue as Option[] | null);
-    } else {
-      onChange(newValue as Option | null);
-    }
+    onChange(newValue);
   };
 
   return (
@@ -38,8 +34,6 @@ const CustomSelect: React.FC<SelectProps> = ({
       placeholder={placeholder}
       isMulti={isMulti}
       styles={customStyles}
-      className="w-full"
-      classNamePrefix="react-select"
     />
   );
 };

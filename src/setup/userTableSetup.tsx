@@ -3,10 +3,18 @@ import type { User } from "../api/usersApi";
 
 const roles = ["dispetcher", "user", "driver"] as const;
 
+// Используем более гибкий тип для currentUser
+interface CurrentUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
 interface UserColumnProps {
   handleRoleChange: (user: User, role: string) => void;
   handleDelete: (user: User) => void;
-  currentUser: User | null;
+  currentUser: CurrentUser | null;
 }
 
 export const getUserColumns = ({
@@ -14,7 +22,6 @@ export const getUserColumns = ({
   handleDelete,
   currentUser,
 }: UserColumnProps) => [
- 
   {
     key: "name",
     header: "Имя",

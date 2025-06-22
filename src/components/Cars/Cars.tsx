@@ -1,204 +1,233 @@
-import {
-  useGetCarsQuery,
-  useUpdateDriverCarMutation,
-  type CarsResponse,
-} from "../../api/carsApi";
+import { useGetCarsQuery, useUpdateDriverCarMutation } from "../../api/carsApi";
 import { useState } from "react";
 import { toast } from "react-toastify";
-import {
-  useGetDriversQuery,
-  type PaginatedDrivers,
-} from "../../api/requestsApi";
+import { useGetDriversQuery } from "../../api/requestsApi";
 import Modal from "../../ui/Modal";
+import type { PaginatedDrivers } from "../../types/requestsSchema";
+import { useConfirmModal } from "../../hooks/useConfirmModal";
+import { DEFAULT_LIMIT, TOAST_POSITION } from "../../ui/constants";
+import type { CarsResponse } from "../../types/carsSchema";
 
-const Cars = () => {
+interface ApiError {
+  status: number;
+  data?: {
+    user?: string[];
+    car?: string[];
+    detail?: string;
+  };
+}
+
+interface SerializedError {
+  message?: string;
+}
+
+type FetchError = ApiError | SerializedError;
+
+interface CarAssignmentData {
+  driverId: string;
+  driverName: string;
+  carId: string;
+  carName: string;
+}
+
+const DriverCarAssignment = () => {
   const {
     data: driversData,
     isLoading: isDriversLoading,
-    refetch: refetchDrivers,
-  } = useGetDriversQuery({ limit: 10 });
-  const { data: carsData, isLoading: isCarsLoading } = useGetCarsQuery(
-    { limit: 10, offset: 0 },
+    error: driversError,
+  } = useGetDriversQuery({ limit: DEFAULT_LIMIT });
+
+  const {
+    data: carsData,
+    isLoading: isCarsLoading,
+    error: carsError,
+  } = useGetCarsQuery(
+    { limit: DEFAULT_LIMIT, offset: 0 },
     { skip: !driversData }
   );
+
   const [updateDriverCar, { isLoading: isUpdating }] =
     useUpdateDriverCarMutation();
   const [selectedCars, setSelectedCars] = useState<Record<string, string>>({});
-  const [modalState, setModalState] = useState<{
-    isOpen: boolean;
-    driverId: string | null;
-    driverName: string | null;
-    carId: string | null;
-    carName: string | null;
-  }>({
-    isOpen: false,
-    driverId: null,
-    driverName: null,
-    carId: null,
-    carName: null,
-  });
 
-  const handleCarChange = (driverId: string, carId: string) => {
-    const selectedCar = carsData?.results.find(
-      (car: CarsResponse["results"][0]) => car.id === carId
-    );
-    const selectedDriver = driversData?.results.find(
+  const {
+    isOpen: isModalOpen,
+    openModal,
+    closeModal,
+    confirm,
+    data: modalData,
+  } = useConfirmModal<CarAssignmentData>();
+
+  const findDriverById = (driverId: string) => {
+    return driversData?.results.find(
       (driver: PaginatedDrivers["results"][0]) => driver.id === driverId
     );
-    console.log(
-      "Выбран водитель:",
-      selectedDriver?.user,
-      "ID:",
-      driverId,
-      "Машина:",
-      selectedCar?.name
+  };
+
+  const findCarById = (carId: string) => {
+    return carsData?.results.find(
+      (car: CarsResponse["results"][0]) => car.id === carId
     );
+  };
+
+  const handleCarChange = (driverId: string, carId: string) => {
+    const selectedDriver = findDriverById(driverId);
+    const selectedCar = findCarById(carId);
+
     if (!selectedDriver) {
-      toast.error("Водитель не найден");
+      toast.error("Водитель не найден", { position: TOAST_POSITION });
       return;
     }
-    setModalState({
-      isOpen: true,
-      driverId: driverId,
-      driverName: selectedDriver?.user || "",
-      carId: selectedCar?.id || null,
-      carName: selectedCar?.name || "",
+
+    if (!selectedCar) {
+      toast.error("Машина не найдена", { position: TOAST_POSITION });
+      return;
+    }
+
+    openModal({
+      driverId,
+      driverName: selectedDriver.user,
+      carId: selectedCar.id,
+      carName: selectedCar.name,
     });
   };
 
   const handleConfirm = async () => {
-    if (modalState.driverId && modalState.driverName && modalState.carId) {
-      try {
-        console.log("Подтверждение назначения:", {
-          driverId: modalState.driverId,
-          driverName: modalState.driverName,
-          carId: modalState.carId,
-        });
-        await updateDriverCar({
-          driverId: modalState.driverId,
-          driverName: modalState.driverName,
-          carId: modalState.carId,
-        }).unwrap();
+    if (!modalData) return;
 
-        setSelectedCars((prev) => ({
-          ...prev,
-          [modalState.driverId!]: modalState.carName!,
-        }));
+    const { driverId, driverName, carId, carName } = modalData;
 
-        // Явно перезапускаем запрос getDrivers
-        refetchDrivers();
+    try {
+      await updateDriverCar({
+        driverId,
+        driverName,
+        carId,
+      }).unwrap();
 
-        setModalState({
-          isOpen: false,
-          driverId: null,
-          driverName: null,
-          carId: null,
-          carName: null,
-        });
-        toast.success("Машина успешно назначена!");
-      } catch (error: any) {
-        console.error("Ошибка при обновлении машины:", error);
-        const errorMessage =
-          error?.user?.[0] ||
-          error?.car?.[0] ||
-          error?.message ||
-          "Не удалось назначить машину.";
-        toast.error(errorMessage);
-      }
-    } else {
-      toast.error("Не выбраны водитель или машина.");
+      setSelectedCars((prev) => ({
+        ...prev,
+        [driverId]: carName,
+      }));
+
+      confirm();
+      toast.success("Машина успешно назначена!", { position: TOAST_POSITION });
+    } catch (error) {
+      const errorMessage = getErrorMessage(error as FetchError);
+      toast.error(errorMessage, { position: TOAST_POSITION });
     }
   };
 
-  const handleCloseModal = () => {
-    setModalState({
-      isOpen: false,
-      driverId: null,
-      driverName: null,
-      carId: null,
-      carName: null,
-    });
+  const getErrorMessage = (error: FetchError): string => {
+    if ("status" in error && error.data) {
+      return (
+        error.data.user?.[0] ||
+        error.data.car?.[0] ||
+        error.data.detail ||
+        "Не удалось назначить машину"
+      );
+    }
+    return "message" in error ? error.message || "Не удалось назначить машину" : "Не удалось назначить машину";
   };
+
+  const hasDrivers = (driversData?.results?.length ?? 0) > 0;
+  const hasCars = (carsData?.results?.length ?? 0) > 0;
 
   if (isDriversLoading || isCarsLoading) {
     return <div className="text-center py-4">Загрузка...</div>;
   }
 
+  if (driversError || carsError) {
+    return (
+      <div className="text-center py-4 text-red-600">
+        Ошибка загрузки данных
+      </div>
+    );
+  }
+
   return (
-    <div className="w-screen overflow-x-hidden">
-      <table className="min-w-full border-collapse border border-gray-300 m-4">
-        <thead className="bg-gray-100">
-          <tr>
-            <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">
-              Имя
-            </th>
-            <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">
-              Машина
-            </th>
-            <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">
-              Действия
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {driversData?.results.map(
-            (driver: PaginatedDrivers["results"][0]) => (
-              <tr key={driver.id} className="hover:bg-gray-50">
-                <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
-                  {driver.user}
-                </td>
-                <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
-                  {selectedCars[driver.id] || driver.car}
-                </td>
-                <td className="border border-gray-300 px-2 py-1 text-sm">
-                  <select
-                    value={selectedCars[driver.id] || ""}
-                    onChange={(e) => handleCarChange(driver.id, e.target.value)}
-                    className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="" disabled={true}>
-                      Выберите машину
-                    </option>
-                    {carsData?.results.map(
-                      (car: CarsResponse["results"][0]) => (
-                        <option key={car.id} value={car.id}>
-                          {car.name} ({car.number})
+    <div className="max-w-6xl mx-auto p-4">
+      <h2 className="text-2xl font-bold mb-6">Назначение машин водителям</h2>
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full border-collapse border border-gray-300">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">
+                Водитель
+              </th>
+              <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">
+                Текущая машина
+              </th>
+              <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">
+                Назначить машину
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {hasDrivers ? (
+              driversData?.results?.map(
+                (driver: PaginatedDrivers["results"][0]) => (
+                  <tr key={driver.id} className="hover:bg-gray-50">
+                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+                      {driver.user}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
+                      {selectedCars[driver.id] || driver.car || "Не назначена"}
+                    </td>
+                    <td className="border border-gray-300 px-2 py-1 text-sm">
+                      <select
+                        value=""
+                        onChange={(e) =>
+                          handleCarChange(driver.id, e.target.value)
+                        }
+                        className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                        disabled={!hasCars}
+                      >
+                        <option value="" disabled>
+                          {hasCars ? "Выберите машину" : "Нет доступных машин"}
                         </option>
-                      )
-                    )}
-                  </select>
+                        {hasCars &&
+                          carsData?.results?.map(
+                            (car: CarsResponse["results"][0]) => (
+                              <option key={car.id} value={car.id}>
+                                {car.name} ({car.number})
+                              </option>
+                            )
+                          )}
+                      </select>
+                    </td>
+                  </tr>
+                )
+              )
+            ) : (
+              <tr>
+                <td
+                  colSpan={3}
+                  className="border border-gray-300 px-4 py-2 text-center text-gray-600"
+                >
+                  Нет доступных водителей
                 </td>
               </tr>
-            )
-          )}
-          {driversData?.results.length === 0 && (
-            <tr>
-              <td
-                colSpan={3}
-                className="border border-gray-300 px-4 py-2 text-center text-gray-600"
-              >
-                Нет доступных водителей
-              </td>
-            </tr>
-          )}
-          {carsData?.results.length === 0 && (
-            <tr>
-              <td
-                colSpan={3}
-                className="border border-gray-300 px-4 py-2 text-center text-gray-600"
-              >
-                Нет доступных машин
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            )}
+          </tbody>
+        </table>
+      </div>
+
       <Modal
-        isOpen={modalState.isOpen}
-        onClose={handleCloseModal}
+        isOpen={isModalOpen}
+        onClose={closeModal}
         onConfirm={handleConfirm}
         title="Назначение машины"
-        message={`Вы уверены, что хотите выбрать машину "${modalState.carName}" для водителя "${modalState.driverName}"?`}
+        message={
+          modalData && (
+            <>
+              Назначить машину{" "}
+              <span className="font-semibold">{modalData.carName}</span>{" "}
+              водителю{" "}
+              <span className="font-semibold">{modalData.driverName}</span>?
+            </>
+          )
+        }
         confirmText="Назначить"
         cancelText="Отмена"
         isLoading={isUpdating}
@@ -207,4 +236,4 @@ const Cars = () => {
   );
 };
 
-export default Cars;
+export default DriverCarAssignment;

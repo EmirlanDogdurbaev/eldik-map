@@ -6,7 +6,7 @@ import {
 } from "@reduxjs/toolkit/query/react";
 
 export const authFetchBaseQuery = (
-  baseUrl: string = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api/"
+  baseUrl: string = import.meta.env.VITE_API_URL
 ): BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> => {
   const baseQuery = fetchBaseQuery({
     baseUrl,

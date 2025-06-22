@@ -19,7 +19,6 @@ interface SaveFCMTokenResponse {
   message: string;
 }
 
-// Функция для удаления FCM-токена
 export const deleteFCMToken = async () => {
   const messaging = getFirebaseMessaging();
   if (!messaging) {
@@ -36,7 +35,7 @@ export const deleteFCMToken = async () => {
 
 export const authApi = createApi({
   reducerPath: "authApi",
-  baseQuery: authFetchBaseQuery("http://127.0.0.1:8000/api/"),
+  baseQuery: authFetchBaseQuery(),
   endpoints: (builder) => ({
     login: builder.mutation<AuthResponse, LoginFormData>({
       query: (credentials) => ({
@@ -85,10 +84,8 @@ export const authApi = createApi({
           await deleteFCMToken();
           localStorage.removeItem("access_token");
           localStorage.removeItem("refresh_token");
-          toast.success("Logged out successfully!");
         } catch (error) {
           console.error("Logout error:", error);
-          toast.error("Logout failed");
         }
       },
     }),

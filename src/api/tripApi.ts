@@ -4,9 +4,7 @@ import { authFetchBaseQuery } from "./authFetchBaseQuery";
 
 export const tripApi = createApi({
   reducerPath: "tripApi",
-  baseQuery: authFetchBaseQuery(
-    import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api/"
-  ),
+  baseQuery: authFetchBaseQuery(),
   endpoints: (builder) => ({
     createTrip: builder.mutation<TripResponse, TripRequest[]>({
       query: (data) => ({

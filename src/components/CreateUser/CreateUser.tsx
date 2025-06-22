@@ -5,7 +5,6 @@ import { useCreateUserMutation } from "../../api/usersApi";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
 import { ArrowLeft } from "lucide-react";
-import CustomSelect from "../../ui/Select";
 
 const CreateUser: React.FC = () => {
   const [form, setForm] = useState({
@@ -22,12 +21,9 @@ const CreateUser: React.FC = () => {
   const roles = ["dispetcher", "user", "driver"] as const;
 
   const handleChange = (
-    e:
-      | React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-      | { name: string; value: string }
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const name = "target" in e ? e.target.name : e.name;
-    const value = "target" in e ? e.target.value : e.value;
+    const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -73,8 +69,6 @@ const CreateUser: React.FC = () => {
     label: role.charAt(0).toUpperCase() + role.slice(1),
   }));
 
-  const selectedRole = roleOptions.find((opt) => opt.value === form.role);
-
   return (
     <div className="flex flex-col min-w-screen">
       <Link
@@ -84,7 +78,7 @@ const CreateUser: React.FC = () => {
         <ArrowLeft /> Назад к пользователям
       </Link>
       <div className="flex min-h-screen">
-        <div className="px-5 bg-white rounded-md w-full min-w-md">
+        <div className="px-5 bg-white rounded-md w-full ">
           <h2 className="text-2xl font-bold mb-6">Создать пользователя</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -133,14 +127,21 @@ const CreateUser: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium mb-1">Роль</label>
-              <CustomSelect
-                options={roleOptions}
-                value={selectedRole || null}
-                onChange={(option) =>
-                  handleChange({ name: "role", value: option?.value || "" })
-                }
-                placeholder="Выберите роль"
-              />
+              <select
+                name="role"
+                value={form.role}
+                onChange={handleChange}
+                className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="" disabled>
+                  Выберите роль
+                </option>
+                {roleOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <Button

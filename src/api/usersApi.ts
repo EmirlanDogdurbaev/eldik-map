@@ -1,49 +1,10 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { z } from "zod";
 import { authFetchBaseQuery } from "./authFetchBaseQuery";
-
-const userSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  email: z.string().email(),
-  number: z
-    .string()
-    .optional()
-    .transform((val) => val ?? ""),
-  role: z.enum(["dispetcher", "user", "driver", "admin"]),
-});
-
-const paginatedUsersSchema = z.object({
-  count: z.number(),
-  next: z.string().nullable(),
-  previous: z.string().nullable(),
-  results: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      email: z.string().email(),
-      number: z
-        .string()
-        .optional()
-        .transform((val) => val ?? ""),
-      role: z.string(),
-    })
-  ),
-});
-
-export type User = z.infer<typeof userSchema>;
-export type PaginatedUsers = {
-  users: User[];
-  count: number;
-  next: string | null;
-  previous: string | null;
-};
+import { paginatedUsersSchema, userSchema, type PaginatedUsers, type User } from "../types/usersSchema";
 
 export const usersApi = createApi({
   reducerPath: "usersApi",
-  baseQuery: authFetchBaseQuery(
-    import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api/"
-  ),
+  baseQuery: authFetchBaseQuery(),
   tagTypes: ["Users"],
   endpoints: (builder) => ({
     getUsers: builder.query<
@@ -149,3 +110,5 @@ export const {
   useDeleteUserMutation,
   useCreateUserMutation,
 } = usersApi;
+export type { User };
+

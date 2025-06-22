@@ -5,6 +5,9 @@ type InputProps = {
   placeholder?: string;
   value?: string;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   type?:
     | "text"
     | "email"
@@ -21,20 +24,25 @@ type InputProps = {
   id?: string;
 };
 
-const Input = (props: InputProps) => {
+const Input = React.forwardRef<HTMLInputElement, InputProps>((props, ref) => {
   const {
-    className,
+    className = "",
     placeholder,
     value,
     onChange,
+    onKeyDown,
+    onBlur,
+    onFocus,
     type = "text",
     disabled = false,
     required = false,
     name = "",
     id = "",
   } = props;
+
   return (
     <input
+      ref={ref}
       autoComplete="off"
       id={id}
       name={name}
@@ -44,9 +52,14 @@ const Input = (props: InputProps) => {
       required={required}
       value={value}
       onChange={onChange}
-      className={`w-3xs p-2 border-black border rounded-md focus:outline-none focus:ring-2 focus:border-blue-400 focus:outline-0 ${className}`}
+      onKeyDown={onKeyDown}
+      onBlur={onBlur}
+      onFocus={onFocus}
+      className={`w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 ${className}`}
     />
   );
-};
+});
+
+Input.displayName = "Input";
 
 export default Input;

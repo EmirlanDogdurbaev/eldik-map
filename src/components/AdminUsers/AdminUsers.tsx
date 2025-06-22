@@ -14,6 +14,22 @@ import { getUserColumns } from "../../setup/userTableSetup";
 import Filters from "../Filters/Filters";
 import { filterFields } from "../../setup/userFilterSetup";
 import { Link } from "react-router-dom";
+import { useConfirmModal } from "../../hooks/useConfirmModal";
+import { capitalize } from "../../utils/stringUtils";
+import { TOAST_POSITION } from "../../ui/constants";
+
+interface ApiError {
+  status: number;
+  data?: {
+    detail?: string;
+  };
+}
+
+interface SerializedError {
+  message?: string;
+}
+
+type FetchError = ApiError | SerializedError;
 
 const AdminUsers: React.FC = () => {
   const { user: currentUser } = useAppSelector((state) => state.auth);
@@ -41,118 +57,116 @@ const AdminUsers: React.FC = () => {
     useUpdateUserRoleMutation();
   const [deleteUser, { isLoading: isDeletingUser }] = useDeleteUserMutation();
 
-  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
-  const [selectedUserForRole, setSelectedUserForRole] = useState<User | null>(
-    null
-  );
-  const [newRole, setNewRole] = useState<string | null>(null);
+  const {
+    isOpen: isRoleModalOpen,
+    openModal: openRoleModal,
+    closeModal: closeRoleModal,
+    confirm: confirmRoleChange,
+    data: roleModalData,
+  } = useConfirmModal<{ user: User; role: string }>();
 
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedUserForDelete, setSelectedUserForDelete] =
-    useState<User | null>(null);
+  const {
+    isOpen: isDeleteModalOpen,
+    openModal: openDeleteModal,
+    closeModal: closeDeleteModal,
+    confirm: confirmDelete,
+    data: deleteModalData,
+  } = useConfirmModal<User>();
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setOffset(0);
   };
 
+  const showSelfActionError = (action: string) => {
+    toast.error(`Нельзя ${action} самого себя`, { position: TOAST_POSITION });
+  };
+
   const handleRoleChange = (user: User, role: string) => {
     if (user.id === currentUser?.id) {
-      toast.error("Нельзя изменить свою роль", { position: "top-right" });
+      showSelfActionError("изменить роль");
       return;
     }
-    setSelectedUserForRole(user);
-    setNewRole(role);
-    setIsRoleModalOpen(true);
+    openRoleModal({ user, role });
   };
 
   const handleConfirmRoleChange = async () => {
-    if (!selectedUserForRole || !newRole) return;
+    if (!roleModalData) return;
+
+    const { user, role } = roleModalData;
 
     try {
       await updateUserRole({
-        id: selectedUserForRole.id,
-        role: newRole,
+        id: user.id,
+        role,
       }).unwrap();
-      toast.success(
-        `Роль пользователя ${selectedUserForRole.name} изменена на ${
-          newRole.charAt(0).toUpperCase() + newRole.slice(1)
-        }`,
-        { position: "top-right" }
-      );
-      setIsRoleModalOpen(false);
-      setSelectedUserForRole(null);
-      setNewRole(null);
-    } catch (err: any) {
-      const message = err.data?.detail || "Не удалось изменить роль";
-      toast.error(message, { position: "top-right" });
-    }
-  };
 
-  const handleCloseRoleModal = () => {
-    setIsRoleModalOpen(false);
-    setSelectedUserForRole(null);
-    setNewRole(null);
+      toast.success(
+        `Роль пользователя ${user.name} изменена на ${capitalize(role)}`,
+        { position: TOAST_POSITION }
+      );
+
+      confirmRoleChange();
+    } catch (err) {
+      const message = getErrorMessage(
+        err as FetchError,
+        "Не удалось изменить роль"
+      );
+      toast.error(message, { position: TOAST_POSITION });
+    }
   };
 
   const handleDelete = (user: User) => {
     if (user.id === currentUser?.id) {
-      toast.error("Нельзя удалить самого себя", { position: "top-right" });
+      showSelfActionError("удалить");
       return;
     }
-    setSelectedUserForDelete(user);
-    setIsDeleteModalOpen(true);
+    openDeleteModal(user);
   };
 
   const handleConfirmDelete = async () => {
-    if (!selectedUserForDelete) return;
+    if (!deleteModalData) return;
 
     try {
-      await deleteUser(selectedUserForDelete.id).unwrap();
-      toast.success(
-        `Пользователь ${selectedUserForDelete.name} успешно удалён`,
-        {
-          position: "top-right",
-        }
+      await deleteUser(deleteModalData.id).unwrap();
+      toast.success(`Пользователь ${deleteModalData.name} успешно удалён`, {
+        position: TOAST_POSITION,
+      });
+      confirmDelete();
+    } catch (err) {
+      const message = getErrorMessage(
+        err as FetchError,
+        "Не удалось удалить пользователя"
       );
-      setIsDeleteModalOpen(false);
-      setSelectedUserForDelete(null);
-    } catch (err: any) {
-      const message = err.data?.detail || "Не удалось удалить пользователя";
-      toast.error(message, { position: "top-right" });
+      toast.error(message, { position: TOAST_POSITION });
     }
   };
 
-  const handleCloseDeleteModal = () => {
-    setIsDeleteModalOpen(false);
-    setSelectedUserForDelete(null);
+  const getErrorMessage = (
+    error: FetchError,
+    defaultMessage: string
+  ): string => {
+    if ("status" in error) {
+      return error.data?.detail || defaultMessage;
+    }
+    return error.message || defaultMessage;
   };
 
   const columns = getUserColumns({
     handleRoleChange,
     handleDelete,
-    currentUser: currentUser
-      ? {
-          ...currentUser,
-          number: "",
-          role: currentUser.role as "dispetcher" | "user" | "driver" | "admin",
-        }
-      : null,
+    currentUser,
   });
 
   const errorMessage = error
-    ? "status" in error
-      ? `${error.status} ${JSON.stringify(error.data)}`
-      : "Неизвестная ошибка"
+    ? getErrorMessage(error as FetchError, "Неизвестная ошибка")
     : null;
 
   return (
-    <div
-      className="px-3 py-4 mx-auto"
-      style={{ maxWidth: "1400px", minWidth: "1400px", width: "100%" }}
-    >
+    <div className="px-3 py-4 mx-auto max-w-7xl min-w-7xl w-full">
       <h2 className="text-2xl font-bold mb-6 p-3">Управление пользователями</h2>
-      <div className="flex items-center justify-between mb-4 p-3  ">
+
+      <div className="flex items-center justify-between mb-4 p-3">
         <Filters
           fields={filterFields}
           values={filters}
@@ -160,11 +174,12 @@ const AdminUsers: React.FC = () => {
         />
         <Link
           to="/admin/users/create"
-          className="px-4 py-2 border text-white  border-blue-400  bg-blue-400 transition-colors rounded-md"
+          className="px-4 py-2 border text-white border-blue-400 bg-blue-400 hover:bg-blue-500 hover:border-blue-500 transition-colors rounded-md"
         >
           Создать пользователя
         </Link>
       </div>
+
       <Table
         data={users}
         columns={columns}
@@ -173,6 +188,7 @@ const AdminUsers: React.FC = () => {
         error={errorMessage}
         limit={limit}
       />
+
       <Pagination
         limit={limit}
         offset={offset}
@@ -180,41 +196,46 @@ const AdminUsers: React.FC = () => {
         onLimitChange={setLimit}
         onOffsetChange={setOffset}
       />
+
       <Modal
         isOpen={isRoleModalOpen}
-        onClose={handleCloseRoleModal}
+        onClose={closeRoleModal}
         onConfirm={handleConfirmRoleChange}
         title="Подтверждение изменения роли"
         message={
-          <>
-            Действительно ли вы хотите назначить роль{" "}
-            <span className="font-semibold">
-              {(newRole ?? "").charAt(0).toUpperCase() +
-                (newRole ?? "").slice(1)}
-            </span>{" "}
-            для пользователя{" "}
-            <span className="font-semibold">{selectedUserForRole?.name}</span>?
-          </>
+          roleModalData && (
+            <>
+              Действительно ли вы хотите назначить роль{" "}
+              <span className="font-semibold">
+                {capitalize(roleModalData.role)}
+              </span>{" "}
+              для пользователя{" "}
+              <span className="font-semibold">{roleModalData.user.name}</span>?
+            </>
+          )
         }
         isLoading={isUpdatingRole}
       />
+
       <Modal
         isOpen={isDeleteModalOpen}
-        onClose={handleCloseDeleteModal}
+        onClose={closeDeleteModal}
         onConfirm={handleConfirmDelete}
         title="Подтверждение удаления"
         message={
-          <>
-            Удалить пользователя{" "}
-            <span className="font-semibold">{selectedUserForDelete?.name}</span>
-            ?
-          </>
+          deleteModalData && (
+            <>
+              Удалить пользователя{" "}
+              <span className="font-semibold">{deleteModalData.name}</span>?
+            </>
+          )
         }
         confirmText="Удалить"
         isLoading={isDeletingUser}
       />
+
       <ToastContainer
-        position="top-right"
+        position={TOAST_POSITION}
         autoClose={3000}
         hideProgressBar={false}
         newestOnTop
