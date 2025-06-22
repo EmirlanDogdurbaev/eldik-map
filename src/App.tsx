@@ -11,10 +11,15 @@ import AdminUsers from "./components/AdminUsers/AdminUsers";
 import CreateUser from "./components/CreateUser/CreateUser";
 import DispatcherDashboard from "./pages/Dispatcher/DispatcherDashboard";
 import RequestDetail from "./components/RequestDetail/RequestDetail";
+import Cars from "./components/Cars/Cars";
+import { useFirebaseMessaging } from "./ui/useFirebaseMessaging";
+import { ToastContainer } from "react-toastify";
 
 function App() {
+  useFirebaseMessaging();
   return (
     <Layout>
+      <ToastContainer position="top-right" autoClose={5000} />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -32,6 +37,7 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={["dispetcher"]} />}>
           <Route path="/dispatcher" element={<DispatcherDashboard />} />
           <Route path="/requests/:id" element={<RequestDetail />} />
+          <Route path="/cars" element={<Cars />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["user"]} />}>

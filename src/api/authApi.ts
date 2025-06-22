@@ -1,55 +1,3 @@
-import {
-  fetchBaseQuery,
-  type BaseQueryFn,
-  type FetchArgs,
-  type FetchBaseQueryError,
-} from "@reduxjs/toolkit/query/react";
-
-const baseQuery = fetchBaseQuery({
-  baseUrl: "",
-  prepareHeaders: (headers, { endpoint }) => {
-    const publicEndpoints = ["login", "register", "confirm", "refreshToken"];
-    if (!publicEndpoints.includes(endpoint)) {
-      const token = localStorage.getItem("access_token");
-      if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
-      }
-    }
-    headers.set("Content-Type", "application/json");
-    return headers;
-  },
-});
-
-export const authFetchBaseQuery = (
-  baseUrl: string
-): BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> => {
-  return async (args, api, extraOptions) => {
-    const result = await baseQuery(
-      {
-        ...(typeof args === "object" ? args : {}),
-        url: `${baseUrl}${typeof args === "string" ? args : args.url}`,
-      },
-      api,
-      extraOptions
-    );
-
-    if (result.error && result.error.status === 401) {
-      console.warn(
-        "Токен недействителен или отсутствует, перенаправление на /login"
-      );
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-      localStorage.removeItem("user");
-      localStorage.removeItem("email");
-      localStorage.removeItem("role");
-      localStorage.removeItem("user_id");
-      window.location.href = "/login";
-    }
-
-    return result;
-  };
-};
-
 import { createApi } from "@reduxjs/toolkit/query/react";
 import {
   type LoginFormData,
@@ -58,16 +6,37 @@ import {
   type AuthResponse,
   authResponseSchema,
 } from "../types/authSchema";
+import { authFetchBaseQuery } from "./authFetchBaseQuery";
+import { toast } from "react-toastify";
+import { getFirebaseMessaging, requestForToken } from "../firebase";
+import { deleteToken } from "firebase/messaging";
 
 interface RefreshTokenResponse {
   access: string;
 }
 
+interface SaveFCMTokenResponse {
+  message: string;
+}
+
+// Функция для удаления FCM-токена
+export const deleteFCMToken = async () => {
+  const messaging = getFirebaseMessaging();
+  if (!messaging) {
+    console.log("Firebase messaging не инициализирован");
+    return;
+  }
+  try {
+    await deleteToken(messaging);
+    console.log("FCM token deleted successfully");
+  } catch (error) {
+    console.error("Error deleting FCM token:", error);
+  }
+};
+
 export const authApi = createApi({
   reducerPath: "authApi",
-  baseQuery: authFetchBaseQuery(
-    import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api/"
-  ),
+  baseQuery: authFetchBaseQuery("http://127.0.0.1:8000/api/"),
   endpoints: (builder) => ({
     login: builder.mutation<AuthResponse, LoginFormData>({
       query: (credentials) => ({
@@ -80,6 +49,48 @@ export const authApi = createApi({
         status: response.status,
         data: response.data,
       }),
+      async onQueryStarted(_, { queryFulfilled, dispatch }) {
+        try {
+          const { data } = await queryFulfilled;
+          localStorage.setItem("access_token", data.access);
+          localStorage.setItem("refresh_token", data.refresh);
+          toast.success("Login successful!");
+
+          await deleteFCMToken();
+          const currentToken = await requestForToken();
+          if (currentToken) {
+            await dispatch(
+              authApi.endpoints.saveFCMToken.initiate({
+                fcm_token: currentToken,
+              })
+            ).unwrap();
+          } else {
+            toast.warn(
+              "Failed to generate FCM token. Please allow notifications."
+            );
+          }
+        } catch (error) {
+          console.error("FCM token error:", error);
+          toast.error("Login failed");
+        }
+      },
+    }),
+    logout: builder.mutation<void, void>({
+      query: () => ({
+        url: "logout/",
+        method: "POST",
+      }),
+      async onQueryStarted(_, {}) {
+        try {
+          await deleteFCMToken();
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+          toast.success("Logged out successfully!");
+        } catch (error) {
+          console.error("Logout error:", error);
+          toast.error("Logout failed");
+        }
+      },
     }),
     register: builder.mutation<{ message: string }, RegisterFormData>({
       query: (data) => ({
@@ -111,6 +122,19 @@ export const authApi = createApi({
         body: { refresh: localStorage.getItem("refresh_token") || "" },
       }),
     }),
+    saveFCMToken: builder.mutation<SaveFCMTokenResponse, { fcm_token: string }>(
+      {
+        query: (data) => ({
+          url: "save-fcm-token/",
+          method: "POST",
+          body: data,
+        }),
+        transformErrorResponse: (response) => ({
+          status: response.status,
+          data: response.data,
+        }),
+      }
+    ),
   }),
 });
 
@@ -119,4 +143,5 @@ export const {
   useRegisterMutation,
   useConfirmMutation,
   useRefreshTokenMutation,
+  useSaveFCMTokenMutation,
 } = authApi;

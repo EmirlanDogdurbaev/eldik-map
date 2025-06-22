@@ -5,30 +5,23 @@ import {
   type FetchBaseQueryError,
 } from "@reduxjs/toolkit/query/react";
 
-const baseQuery = fetchBaseQuery({
-  baseUrl: "",
-  prepareHeaders: (headers) => {
-    const token = localStorage.getItem("access_token");
-    if (token) {
-      headers.set("Authorization", `Bearer ${token}`);
-    }
-    headers.set("Content-Type", "application/json");
-    return headers;
-  },
-});
-
 export const authFetchBaseQuery = (
-  baseUrl: string
+  baseUrl: string = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api/"
 ): BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> => {
+  const baseQuery = fetchBaseQuery({
+    baseUrl,
+    prepareHeaders: (headers) => {
+      const token = localStorage.getItem("access_token");
+      if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
+      }
+      headers.set("Content-Type", "application/json");
+      return headers;
+    },
+  });
+
   return async (args, api, extraOptions) => {
-    const result = await baseQuery(
-      {
-        ...(typeof args === "object" ? args : {}),
-        url: `${baseUrl}${typeof args === "string" ? args : args.url}`,
-      },
-      api,
-      extraOptions
-    );
+    const result = await baseQuery(args, api, extraOptions);
 
     if (result.error && result.error.status === 401) {
       localStorage.removeItem("access_token");

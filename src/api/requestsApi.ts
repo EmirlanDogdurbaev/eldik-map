@@ -9,9 +9,9 @@ const locationSchema = z.object({
 const driverSchema = z.object({
   id: z.string(),
   user: z.string(),
-  car: z.string(),
-  status: z.number(),
-  location_history: z.array(locationSchema),
+  car: z.string().optional(),
+  status: z.number().optional(),
+  location_history: z.array(locationSchema).optional(),
 });
 
 const paginatedDriversSchema = z.object({
@@ -67,7 +67,7 @@ export const requestsApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ["Requests"],
+  tagTypes: ["Requests", "Drivers"],
   endpoints: (builder) => ({
     getRequests: builder.query<
       PaginatedRequests,
@@ -116,12 +116,32 @@ export const requestsApi = createApi({
         result
           ? [
               ...result.results.map(({ id }) => ({
-                type: "Requests" as const,
+                type: "Drivers" as const,
                 id,
               })),
-              { type: "Requests" as const },
+              { type: "Drivers" as const },
             ]
-          : [{ type: "Requests" as const }],
+          : [{ type: "Drivers" as const }],
+    }),
+
+    getDriverByNameAndRole: builder.query<
+      PaginatedDrivers,
+      { name: string; role: string }
+    >({
+      query: ({ name, role }) =>
+        `users/?name=${encodeURIComponent(name)}&role=${encodeURIComponent(
+          role
+        )}`,
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.results.map(({ id }) => ({
+                type: "Drivers" as const,
+                id,
+              })),
+              { type: "Drivers" as const },
+            ]
+          : [{ type: "Drivers" as const }],
     }),
 
     updateRequest: builder.mutation<
@@ -130,7 +150,7 @@ export const requestsApi = createApi({
         id: string;
         status: number;
         comments?: string;
-        drivers?: Record<string, string>;
+        driver?: string;
       }
     >({
       query: ({ id, ...body }) => ({
@@ -138,6 +158,7 @@ export const requestsApi = createApi({
         method: "PATCH",
         body,
       }),
+
       invalidatesTags: ["Requests"],
     }),
   }),
@@ -147,5 +168,6 @@ export const {
   useGetRequestsQuery,
   useGetRequestByIdQuery,
   useGetDriversQuery,
+  useGetDriverByNameAndRoleQuery,
   useUpdateRequestMutation,
 } = requestsApi;
