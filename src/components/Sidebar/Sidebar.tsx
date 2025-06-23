@@ -1,13 +1,15 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
+import { useCreateTripMutation } from "../../api/tripApi";
+import { Car, Truck, Bus, Plus } from "lucide-react";
 import { z } from "zod";
+import type { TripFormData } from "../../types/tripSchema";
+import { useDraggableSidebar } from "../../utils/useDraggableSidebar";
+
 import Button from "../../ui/Button";
 import Textarea from "../../ui/Textarea";
-import type { TripFormData } from "../../types/tripSchema";
-import { useCreateTripMutation } from "../../api/tripApi";
 import LocationInputs from "../LocationInputs/LocationInputs";
-import { Car, Truck, Bus, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
 import Modal from "../../ui/Modal";
 
 const vehicleTypes = [
@@ -95,7 +97,6 @@ const tripSchema = z
   );
 
 const Sidebar: React.FC<SidebarProps> = ({
-  className,
   departure,
   destination,
   setDeparture,
@@ -114,6 +115,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   } = useForm<TripFormData>({
     resolver: zodResolver(tripSchema),
   });
+
+  const { sidebarRef, dragRef, toggleRef } = useDraggableSidebar(60); // 60 — высота шапки
 
   const [createTrip, { isLoading, error }] = useCreateTripMutation();
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -315,11 +318,31 @@ const Sidebar: React.FC<SidebarProps> = ({
         departure &&
         destination));
 
+  const asideClass = `
+  fixed bottom-0 left-0 right-0 w-full h-screen bg-blue-100 border-t overflow-auto rounded-t-2xl shadow-lg
+  transition-transform duration-200 will-change-transform z-[500]
+  sm:static sm:translate-y-0 sm:w-95 sm:h-auto sm:border-t-0 sm:border-r sm:rounded-none sm:shadow-none sm:z-10
+`;
+
   return (
-    <div
-      className={`${className} shadow min-w-96 max-h-[100dvh] bg-white overflow-y-auto`}
-    >
-      <aside className="p-4 sm:p-6 flex flex-col gap-6">
+    <>
+      <aside
+        ref={sidebarRef}
+        className={asideClass + " p-4 sm:p-6 flex flex-col gap-6"}
+      >
+        <div className="relative sm:hidden flex justify-center items-center mt-2 mb-4">
+          <div
+            ref={dragRef}
+            className="w-32 h-2 bg-gray-500 rounded-full cursor-grab active:cursor-grabbing touch-none"
+          ></div>
+          <button
+            ref={toggleRef}
+            className="absolute right-4 p-1 bg-gray-200 rounded-full"
+            aria-label="Toggle sidebar"
+          >
+            ☰
+          </button>
+        </div>
         <form
           className="flex flex-col gap-4"
           onSubmit={handleSubmit(() => handleSendRoutes())}
@@ -474,7 +497,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </form>
       </aside>
-
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -484,7 +506,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         confirmText="Закрыть"
         isLoading={modalLoading}
       />
-    </div>
+    </>
   );
 };
 

@@ -24,7 +24,7 @@ const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-500">
+    <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-900">
       <div className="bg-white rounded-lg shadow-md p-6 max-w-md w-full">
         <h3 className="text-lg font-bold mb-4">{title}</h3>
         <p className="text-gray-700 mb-6">{message}</p>

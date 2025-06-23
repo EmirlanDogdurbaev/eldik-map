@@ -149,33 +149,10 @@ const MapPage: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen w-[100vw]">
-      <Sidebar
-        className="flex-shrink-0"
-        departure={points.departure}
-        destination={points.destination}
-        setDeparture={setDeparture}
-        setDestination={setDestination}
-        selecting={selecting}
-        setSelecting={setSelecting}
-      />
-
-      <MapContainer
-        style={{ height: "100%", minWidth: "100%" }}
-        zoom={13}
-        zoomControl={false}
-        center={[42.87, 74.66]} // Бишкек по центру
-        maxBounds={[
-          [39.16, 69.2],
-          [43.3, 80.3],
-        ]} // ограничение по bbox Кыргызстана
-        maxBoundsViscosity={1.0} // 1.0 = строгое ограничение, 0 — мягкое
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
-        <MapEffect
+    <>
+      <div className="flex h-screen w-[100vw]">
+        <Sidebar
+          className="flex-shrink-0"
           departure={points.departure}
           destination={points.destination}
           setDeparture={setDeparture}
@@ -183,8 +160,33 @@ const MapPage: React.FC = () => {
           selecting={selecting}
           setSelecting={setSelecting}
         />
-      </MapContainer>
-    </div>
+        <MapContainer
+          style={{ height: "100%" }}
+          className="flex-1 min-w-0"
+          zoom={13}
+          zoomControl={false}
+          center={[42.87, 74.66]} // Бишкек по центру
+          maxBounds={[
+            [39.16, 69.2],
+            [43.3, 80.3],
+          ]} // ограничение по bbox Кыргызстана
+          maxBoundsViscosity={1.0} // 1.0 = строгое ограничение, 0 — мягкое
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          />
+          <MapEffect
+            departure={points.departure}
+            destination={points.destination}
+            setDeparture={setDeparture}
+            setDestination={setDestination}
+            selecting={selecting}
+            setSelecting={setSelecting}
+          />
+        </MapContainer>
+      </div>
+    </>
   );
 };
 
