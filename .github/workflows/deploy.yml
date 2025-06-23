@@ -63,7 +63,7 @@ jobs:
           ssh -v -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST << 'EOF'
             echo "Connected to VM at $(date)"
 
-            REPO_DIR="/home/$SERVER_USER/rsk_taxi/eldik-map"
+            REPO_DIR="/home/jigit38/rsk_taxi/eldik-map"
 
             cd $REPO_DIR || {
               echo "Error: Directory $REPO_DIR does not exist"
