@@ -73,17 +73,43 @@ jobs:
         run: |
           ssh -v -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} << 'EOF'
             echo "Connected to VM"
-            cd /home/${SERVER_USER}/rsk_taxi/eldik-map || {
+            if ! [ -d "/home/${SERVER_USER}/rsk_taxi/eldik-map" ]; then
               echo "Error: Directory not found. Cloning repository..."
-              https://github.com/EmirlanDogdurbaev/eldik-map.git /home/${SERVER_USER}/rsk_taxi/eldik-map
-            }
+              git clone git@github.com:EmirlanDogdurbaev/eldik-map.git /home/${SERVER_USER}/rsk_taxi/eldik-map || {
+                echo "Error: Git clone failed"
+                exit 1
+              }
+            fi
             cd /home/${SERVER_USER}/rsk_taxi/eldik-map
-            git pull origin main
-            bun install
-            bun run build
+            git pull origin main || {
+              echo "Error: Git pull failed"
+              exit 1
+            }
+            # Проверка и установка Bun, если отсутствует
+            if ! command -v bun >/dev/null 2>&1; then
+              echo "Installing Bun..."
+              curl -fsSL https://bun.sh/install | bash
+              export PATH="$HOME/.bun/bin:$PATH"
+            fi
+            bun install || {
+              echo "Error: Bun install failed"
+              exit 1
+            }
+            bun run build || {
+              echo "Error: Build failed"
+              exit 1
+            }
             sudo rm -rf /var/www/frontend/dist/*
-            sudo cp -r dist/* /var/www/frontend/dist/
+            sudo mkdir -p /var/www/frontend/dist
+            sudo cp -r dist/* /var/www/frontend/dist/ || {
+              echo "Error: Copying files failed"
+              exit 1
+            }
             sudo chmod -R 755 /var/www/frontend/dist
             sudo chown -R www-data:www-data /var/www/frontend/dist
-            sudo systemctl reload nginx
+            sudo systemctl reload nginx || {
+              echo "Error: Nginx reload failed"
+              exit 1
+            }
+            echo "Deployment completed"
           EOF
