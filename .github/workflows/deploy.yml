@@ -10,24 +10,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Чекаут кода (для проверки билда локально)
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Установка Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # 3. Установка Bun
       - name: Install Bun
         run: |
           curl -fsSL https://bun.sh/install | bash
           export PATH="$HOME/.bun/bin:$PATH"
           bun --version
 
-      # 4. Кэширование зависимостей (локально)
       - name: Cache Bun dependencies
         uses: actions/cache@v4
         with:
@@ -36,13 +32,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
 
-      # 5. Установка зависимостей (локально)
       - name: Install dependencies
         run: |
           export PATH="$HOME/.bun/bin:$PATH"
           bun install
 
-      # 6. Проверка билда (локально)
       - name: Build frontend
         run: |
           export PATH="$HOME/.bun/bin:$PATH"
@@ -52,7 +46,6 @@ jobs:
             exit 1
           }
 
-      # 7. Настройка SSH
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -62,7 +55,6 @@ jobs:
           chmod 600 ~/.ssh/known_hosts
           echo "SSH setup completed"
 
-      # 8. Деплой на сервер
       - name: Deploy to VM
         env:
           SERVER_USER: ${{ secrets.SERVER_USER }}
@@ -73,19 +65,15 @@ jobs:
 
             REPO_DIR="/home/$SERVER_USER/rsk_taxi/eldik-map"
 
-            if [ ! -d "$REPO_DIR" ]; then
-              echo "Directory not found. Cloning repository..."
-              git clone git@github.com:EmirlanDogdurbaev/eldik-map.git $REPO_DIR || {
-                echo "Error: Git clone failed"
-                exit 1
-              }
-            else
-              cd $REPO_DIR
-              git pull origin main || {
-                echo "Error: Git pull failed"
-                exit 1
-              }
-            fi
+            cd $REPO_DIR || {
+              echo "Error: Directory $REPO_DIR does not exist"
+              exit 1
+            }
+
+            git pull origin main || {
+              echo "Error: Git pull failed"
+              exit 1
+            }
 
             if ! command -v bun >/dev/null 2>&1; then
               echo "Installing Bun..."
