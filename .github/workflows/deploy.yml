@@ -14,7 +14,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Установка Node.js (для совместимости с Bun)
+      # 2. Установка Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -55,25 +55,30 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+          echo "SERVER_HOST: ${{ secrets.SERVER_HOST }}"
+          if [ -z "${{ secrets.SERVER_HOST }}" ]; then
+            echo "Error: SERVER_HOST is not set"
+            exit 1
+          fi
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || {
+            echo "Error: ssh-keyscan failed"
+            exit 1
+          }
+          chmod 600 ~/.ssh/known_hosts
           echo "SSH setup completed"
 
       # 8. Деплой на сервер
       - name: Deploy to VM
         if: success()
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USERNAME }}@${{ secrets.VM_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
             echo "Connected to VM"
-            # Очистка старых файлов
             sudo rm -rf /var/www/frontend/dist/*
             sudo mkdir -p /var/www/frontend/dist
           EOF
-          # Копирование билда
-          scp -o StrictHostKeyChecking=no -r ./dist/* ${{ secrets.VM_USERNAME }}@${{ secrets.VM_HOST }}:/var/www/frontend/dist/
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USERNAME }}@${{ secrets.VM_HOST }} << 'EOF'
-            # Установка прав
+          scp -o StrictHostKeyChecking=no -r ./dist/* ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/var/www/frontend/dist/
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
             sudo chmod -R 755 /var/www/frontend/dist
             sudo chown -R www-data:www-data /var/www/frontend/dist
-            # Перезагрузка Nginx
             sudo systemctl reload nginx
           EOF
