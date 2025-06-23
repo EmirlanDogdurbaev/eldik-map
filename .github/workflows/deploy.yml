@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Чекаут кода
+      # 1. Чекаут кода (для проверки билда локально)
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -20,14 +20,14 @@ jobs:
         with:
           node-version: '20'
 
-      # 3. Установка Bun (локально)
+      # 3. Установка Bun
       - name: Install Bun
         run: |
           curl -fsSL https://bun.sh/install | bash
-          echo "$HOME/.bun/bin" >> $GITHUB_PATH
+          export PATH="$HOME/.bun/bin:$PATH"
           bun --version
 
-      # 4. Кэш зависимостей Bun
+      # 4. Кэширование зависимостей (локально)
       - name: Cache Bun dependencies
         uses: actions/cache@v4
         with:
@@ -38,11 +38,15 @@ jobs:
 
       # 5. Установка зависимостей (локально)
       - name: Install dependencies
-        run: bun install
+        run: |
+          export PATH="$HOME/.bun/bin:$PATH"
+          bun install
 
-      # 6. Проверка сборки (локально)
+      # 6. Проверка билда (локально)
       - name: Build frontend
-        run: bun run build
+        run: |
+          export PATH="$HOME/.bun/bin:$PATH"
+          bun run build
 
       # 7. Настройка SSH
       - name: Setup SSH
