@@ -1,0 +1,79 @@
+name: Deploy eldik_map to Google Cloud VM
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Чекаут кода
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Установка Node.js (для совместимости с Bun)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 3. Установка Bun
+      - name: Install Bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          export PATH="$HOME/.bun/bin:$PATH"
+          bun --version
+
+      # 4. Кэширование зависимостей
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      # 5. Установка зависимостей
+      - name: Install dependencies
+        run: |
+          export PATH="$HOME/.bun/bin:$PATH"
+          bun install
+
+      # 6. Проверка билда
+      - name: Build frontend
+        run: |
+          export PATH="$HOME/.bun/bin:$PATH"
+          bun run build
+
+      # 7. Настройка SSH
+      - name: Setup SSH
+        if: success()
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+          echo "SSH setup completed"
+
+      # 8. Деплой на сервер
+      - name: Deploy to VM
+        if: success()
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USERNAME }}@${{ secrets.VM_HOST }} << 'EOF'
+            echo "Connected to VM"
+            # Очистка старых файлов
+            sudo rm -rf /var/www/frontend/dist/*
+            sudo mkdir -p /var/www/frontend/dist
+          EOF
+          # Копирование билда
+          scp -o StrictHostKeyChecking=no -r ./dist/* ${{ secrets.VM_USERNAME }}@${{ secrets.VM_HOST }}:/var/www/frontend/dist/
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USERNAME }}@${{ secrets.VM_HOST }} << 'EOF'
+            # Установка прав
+            sudo chmod -R 755 /var/www/frontend/dist
+            sudo chown -R www-data:www-data /var/www/frontend/dist
+            # Перезагрузка Nginx
+            sudo systemctl reload nginx
+          EOF
