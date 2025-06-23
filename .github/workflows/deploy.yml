@@ -100,24 +100,24 @@ jobs:
             }
 
             echo "Deploying frontend..."
-            /bin/rm -rf /var/www/frontend/dist
-            /bin/mv "$REPO_DIR/dist" /var/www/frontend/ || {
+            sudo rm -rf /var/www/frontend/dist/
+            sudo mv "$REPO_DIR/dist" /var/www/frontend/ || {
               echo "Error: Copying files failed"
               exit 1
             }
 
             echo "Setting permissions..."
-            /bin/chmod -R 755 /var/www/frontend/dist
-            /bin/chown -R www-data:www-data /var/www/frontend/dist
+            sudo chmod -R 755 /var/www/frontend/dist
+            sudo chown -R www-data:www-data /var/www/frontend/dist
 
             echo "Reloading Nginx..."
-            /usr/bin/systemctl reload nginx || {
+            sudo systemctl reload nginx || {
               echo "Error: Nginx reload failed"
               exit 1
             }
 
             echo "Restarting Gunicorn..."
-            /usr/bin/systemctl restart gunicorn.service || {
+            sudo systemctl restart gunicorn.service || {
               echo "Error: Gunicorn restart failed"
               exit 1
             }
