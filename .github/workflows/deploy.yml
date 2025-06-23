@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Чекаут кода (для проверки билда локально)
+      # 1. Чекаут кода
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -20,14 +20,14 @@ jobs:
         with:
           node-version: '20'
 
-      # 3. Установка Bun
+      # 3. Установка Bun (локально)
       - name: Install Bun
         run: |
           curl -fsSL https://bun.sh/install | bash
-          export PATH="$HOME/.bun/bin:$PATH"
+          echo "$HOME/.bun/bin" >> $GITHUB_PATH
           bun --version
 
-      # 4. Кэширование зависимостей (локально)
+      # 4. Кэш зависимостей Bun
       - name: Cache Bun dependencies
         uses: actions/cache@v4
         with:
@@ -38,79 +38,82 @@ jobs:
 
       # 5. Установка зависимостей (локально)
       - name: Install dependencies
-        run: |
-          export PATH="$HOME/.bun/bin:$PATH"
-          bun install
+        run: bun install
 
-      # 6. Проверка билда (локально)
+      # 6. Проверка сборки (локально)
       - name: Build frontend
-        run: |
-          export PATH="$HOME/.bun/bin:$PATH"
-          bun run build
+        run: bun run build
 
       # 7. Настройка SSH
       - name: Setup SSH
-        if: success()
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          echo "SERVER_HOST: ${{ secrets.SERVER_HOST }}"
-          if [ -z "${{ secrets.SERVER_HOST }}" ]; then
-            echo "Error: SERVER_HOST is not set"
-            exit 1
-          fi
-          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || {
-            echo "Error: ssh-keyscan failed"
-            exit 1
-          }
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
           echo "SSH setup completed"
 
       # 8. Деплой на сервер
       - name: Deploy to VM
-        if: success()
+        env:
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
         run: |
-          ssh -v -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} << 'EOF'
+          ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST <<EOF
             echo "Connected to VM"
-            if ! [ -d "/home/${SERVER_USER}/rsk_taxi/eldik-map" ]; then
-              echo "Error: Directory not found. Cloning repository..."
-              git clone git@github.com:EmirlanDogdurbaev/eldik-map.git /home/${SERVER_USER}/rsk_taxi/eldik-map || {
+
+            REPO_DIR="/home/$SERVER_USER/rsk_taxi/eldik-map"
+
+            if [ ! -d "\$REPO_DIR" ]; then
+              echo "Directory not found. Cloning repository..."
+              git clone git@github.com:EmirlanDogdurbaev/eldik-map.git \$REPO_DIR || {
                 echo "Error: Git clone failed"
                 exit 1
               }
-            else
-              cd /home/${SERVER_USER}/rsk_taxi/eldik-map
-              git pull origin main || {
-                echo "Error: Git pull failed"
-                exit 1
-              }
             fi
-            # Проверка и установка Bun, если отсутствует
+
+            cd \$REPO_DIR || {
+              echo "Error: Directory change failed"
+              exit 1
+            }
+
+            git pull origin main || {
+              echo "Error: Git pull failed"
+              exit 1
+            }
+
             if ! command -v bun >/dev/null 2>&1; then
               echo "Installing Bun..."
               curl -fsSL https://bun.sh/install | bash
-              export PATH="$HOME/.bun/bin:$PATH"
+              export PATH="\$HOME/.bun/bin:\$PATH"
             fi
+
+            export PATH="\$HOME/.bun/bin:\$PATH"
+
             bun install || {
               echo "Error: Bun install failed"
               exit 1
             }
+
             bun run build || {
               echo "Error: Build failed"
               exit 1
             }
+
             sudo rm -rf /var/www/frontend/dist/*
             sudo mkdir -p /var/www/frontend/dist
             sudo cp -r dist/* /var/www/frontend/dist/ || {
               echo "Error: Copying files failed"
               exit 1
             }
+
             sudo chmod -R 755 /var/www/frontend/dist
             sudo chown -R www-data:www-data /var/www/frontend/dist
             sudo systemctl reload nginx || {
               echo "Error: Nginx reload failed"
               exit 1
             }
+
             echo "Deployment completed"
-          EOF
+EOF
