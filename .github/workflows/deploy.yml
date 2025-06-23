@@ -55,21 +55,25 @@ jobs:
           chmod 600 ~/.ssh/known_hosts
           echo "SSH setup completed"
 
+          
       - name: Deploy to VM
         env:
           SERVER_USER: ${{ secrets.SERVER_USER }}
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
         run: |
-          ssh -v -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST << 'EOF'
+          ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST << 'EOF'
             echo "Connected to VM at $(date)"
 
             REPO_DIR="/home/jigit38/rsk_taxi/eldik-map"
 
-            cd $REPO_DIR || {
+            if [ ! -d "$REPO_DIR" ]; then
               echo "Error: Directory $REPO_DIR does not exist"
               exit 1
-            }
+            fi
 
+            cd "$REPO_DIR"
+
+            echo "Pulling latest code..."
             git pull origin main || {
               echo "Error: Git pull failed"
               exit 1
@@ -82,35 +86,43 @@ jobs:
             fi
 
             export PATH="$HOME/.bun/bin:$PATH"
-            echo "Running bun install..."
+
+            echo "Installing dependencies..."
             bun install || {
               echo "Error: Bun install failed"
               exit 1
             }
 
-            echo "Running bun run build..."
+            echo "Building project..."
             bun run build || {
               echo "Error: Build failed"
               exit 1
             }
 
-            echo "Cleaning and copying dist files..."
-            sudo rm -rf /var/www/frontend/dist/*
-            sudo mkdir -p /var/www/frontend/dist
-            sudo cp -r $REPO_DIR/dist/* /var/www/frontend/dist/ || {
+            echo "Deploying frontend..."
+            /bin/rm -rf /var/www/frontend/dist/*
+            /bin/mkdir -p /var/www/frontend/dist
+            /bin/cp -r "$REPO_DIR/dist/"* /var/www/frontend/dist/ || {
               echo "Error: Copying files failed"
               exit 1
             }
 
             echo "Setting permissions..."
-            sudo chmod -R 755 /var/www/frontend/dist
-            sudo chown -R www-data:www-data /var/www/frontend/dist
+            /bin/chmod -R 755 /var/www/frontend/dist
+            /bin/chown -R www-data:www-data /var/www/frontend/dist
 
             echo "Reloading Nginx..."
-            sudo systemctl reload nginx || {
+            /usr/bin/systemctl reload nginx || {
               echo "Error: Nginx reload failed"
+              exit 1
+            }
+
+            echo "Restarting Gunicorn..."
+            /usr/bin/systemctl restart gunicorn.service || {
+              echo "Error: Gunicorn restart failed"
               exit 1
             }
 
             echo "Deployment completed at $(date)"
           EOF
+
