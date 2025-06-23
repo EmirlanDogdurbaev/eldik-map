@@ -46,7 +46,11 @@ jobs:
       - name: Build frontend
         run: |
           export PATH="$HOME/.bun/bin:$PATH"
-          bun run build
+          echo "Starting build at $(date)"
+          bun run build || {
+            echo "Build failed at $(date) with exit code $?"
+            exit 1
+          }
 
       # 7. Настройка SSH
       - name: Setup SSH
@@ -64,60 +68,61 @@ jobs:
           SERVER_USER: ${{ secrets.SERVER_USER }}
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
         run: |
-          ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST <<EOF
-            echo "Connected to VM"
+          ssh -v -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST << 'EOF'
+            echo "Connected to VM at $(date)"
 
             REPO_DIR="/home/$SERVER_USER/rsk_taxi/eldik-map"
 
-            if [ ! -d "\$REPO_DIR" ]; then
+            if [ ! -d "$REPO_DIR" ]; then
               echo "Directory not found. Cloning repository..."
-              git clone git@github.com:EmirlanDogdurbaev/eldik-map.git \$REPO_DIR || {
+              git clone git@github.com:EmirlanDogdurbaev/eldik-map.git $REPO_DIR || {
                 echo "Error: Git clone failed"
+                exit 1
+              }
+            else
+              cd $REPO_DIR
+              git pull origin main || {
+                echo "Error: Git pull failed"
                 exit 1
               }
             fi
 
-            cd \$REPO_DIR || {
-              echo "Error: Directory change failed"
-              exit 1
-            }
-
-            git pull origin main || {
-              echo "Error: Git pull failed"
-              exit 1
-            }
-
             if ! command -v bun >/dev/null 2>&1; then
               echo "Installing Bun..."
               curl -fsSL https://bun.sh/install | bash
-              export PATH="\$HOME/.bun/bin:\$PATH"
+              export PATH="$HOME/.bun/bin:$PATH"
             fi
 
-            export PATH="\$HOME/.bun/bin:\$PATH"
-
+            export PATH="$HOME/.bun/bin:$PATH"
+            echo "Running bun install..."
             bun install || {
               echo "Error: Bun install failed"
               exit 1
             }
 
+            echo "Running bun run build..."
             bun run build || {
               echo "Error: Build failed"
               exit 1
             }
 
+            echo "Cleaning and copying dist files..."
             sudo rm -rf /var/www/frontend/dist/*
             sudo mkdir -p /var/www/frontend/dist
-            sudo cp -r dist/* /var/www/frontend/dist/ || {
+            sudo cp -r $REPO_DIR/dist/* /var/www/frontend/dist/ || {
               echo "Error: Copying files failed"
               exit 1
             }
 
+            echo "Setting permissions..."
             sudo chmod -R 755 /var/www/frontend/dist
             sudo chown -R www-data:www-data /var/www/frontend/dist
+
+            echo "Reloading Nginx..."
             sudo systemctl reload nginx || {
               echo "Error: Nginx reload failed"
               exit 1
             }
 
-            echo "Deployment completed"
+            echo "Deployment completed at $(date)"
           EOF
