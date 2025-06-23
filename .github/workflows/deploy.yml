@@ -100,9 +100,8 @@ jobs:
             }
 
             echo "Deploying frontend..."
-            /bin/rm -rf /var/www/frontend/dist/*
-            /bin/mkdir -p /var/www/frontend/dist
-            /bin/cp -r "$REPO_DIR/dist/"* /var/www/frontend/dist/ || {
+            /bin/rm -rf /var/www/frontend/dist
+            /bin/mv -r "$REPO_DIR/dist" /var/www/frontend/ || {
               echo "Error: Copying files failed"
               exit 1
             }
