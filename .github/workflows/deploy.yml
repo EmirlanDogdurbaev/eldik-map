@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Чекаут кода
+      # 1. Чекаут кода (для проверки билда локально)
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -27,7 +27,7 @@ jobs:
           export PATH="$HOME/.bun/bin:$PATH"
           bun --version
 
-      # 4. Кэширование зависимостей
+      # 4. Кэширование зависимостей (локально)
       - name: Cache Bun dependencies
         uses: actions/cache@v4
         with:
@@ -36,13 +36,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
 
-      # 5. Установка зависимостей
+      # 5. Установка зависимостей (локально)
       - name: Install dependencies
         run: |
           export PATH="$HOME/.bun/bin:$PATH"
           bun install
 
-      # 6. Проверка билда
+      # 6. Проверка билда (локально)
       - name: Build frontend
         run: |
           export PATH="$HOME/.bun/bin:$PATH"
@@ -71,13 +71,18 @@ jobs:
       - name: Deploy to VM
         if: success()
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+          ssh -v -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} << 'EOF'
             echo "Connected to VM"
+            cd /home/${SERVER_USER}/rsk_taxi/eldik-map || {
+              echo "Error: Directory not found. Cloning repository..."
+              https://github.com/EmirlanDogdurbaev/eldik-map.git /home/${SERVER_USER}/rsk_taxi/eldik-map
+            }
+            cd /home/${SERVER_USER}/rsk_taxi/eldik-map
+            git pull origin main
+            bun install
+            bun run build
             sudo rm -rf /var/www/frontend/dist/*
-            sudo mkdir -p /var/www/frontend/dist
-          EOF
-          scp -o StrictHostKeyChecking=no -r ./dist/* ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/var/www/frontend/dist/
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            sudo cp -r dist/* /var/www/frontend/dist/
             sudo chmod -R 755 /var/www/frontend/dist
             sudo chown -R www-data:www-data /var/www/frontend/dist
             sudo systemctl reload nginx
