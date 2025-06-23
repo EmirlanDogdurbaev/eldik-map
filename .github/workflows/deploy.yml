@@ -79,12 +79,13 @@ jobs:
                 echo "Error: Git clone failed"
                 exit 1
               }
+            else
+              cd /home/${SERVER_USER}/rsk_taxi/eldik-map
+              git pull origin main || {
+                echo "Error: Git pull failed"
+                exit 1
+              }
             fi
-            cd /home/${SERVER_USER}/rsk_taxi/eldik-map
-            git pull origin main || {
-              echo "Error: Git pull failed"
-              exit 1
-            }
             # Проверка и установка Bun, если отсутствует
             if ! command -v bun >/dev/null 2>&1; then
               echo "Installing Bun..."
