@@ -116,7 +116,7 @@ const RequestInfo: React.FC<{ request: Request }> = ({ request }) => (
       <strong>Дата:</strong> {new Date(request.date).toLocaleDateString()}
     </p>
     <p>
-      <strong>Пользователь:</strong> {request.user}
+      <strong>Пользователь:</strong> {request.user_name}
     </p>
     <p>
       <strong>Статус:</strong> {request.status_text}
@@ -125,7 +125,7 @@ const RequestInfo: React.FC<{ request: Request }> = ({ request }) => (
       <strong>Комментарии:</strong> {request.comments || "Нет комментариев"}
     </p>
     <p>
-      <strong>Водитель:</strong> {request.driver || "Не назначен"}
+      <strong>Водитель:</strong> {request.driver_name || "Не назначен"}
     </p>
   </div>
 );

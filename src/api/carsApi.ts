@@ -11,7 +11,7 @@ import z from "zod";
 export const carsApi = createApi({
   reducerPath: "carsApi",
   baseQuery: authFetchBaseQuery(),
-  tagTypes: ["Drivers"],
+  tagTypes: ["Drivers", "Cars"],
   endpoints: (builder) => ({
     getCars: builder.query<CarsResponse, { limit: number; offset: number }>({
       query: ({ limit, offset }) => ({
@@ -28,6 +28,7 @@ export const carsApi = createApi({
           throw new Error("Invalid response format");
         }
       },
+      providesTags: [{ type: "Cars", id: "LIST" }],
     }),
     getUserByName: builder.query<UserResponse, { name: string }>({
       query: ({ name }) => ({
@@ -49,10 +50,10 @@ export const carsApi = createApi({
       void,
       { driverId: string; driverName: string; carId: string }
     >({
-      query: ({ driverId, driverName, carId }) => ({
+      query: ({ driverId, carId }) => ({
         url: `drivers/${driverId}/`,
         method: "PATCH",
-        body: { user: driverName, car: carId },
+        body: { car: carId },
       }),
       async onQueryStarted({ driverName }, { dispatch, queryFulfilled }) {
         try {
@@ -70,6 +71,17 @@ export const carsApi = createApi({
       },
       invalidatesTags: [{ type: "Drivers", id: "LIST" }],
     }),
+    createCar: builder.mutation<
+      void,
+      { name: string; car_type: string; number: string; main_driver: string }
+    >({
+      query: (body) => ({
+        url: `cars/`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: [{ type: "Cars", id: "LIST" }],
+    }),
   }),
 });
 
@@ -77,4 +89,5 @@ export const {
   useGetCarsQuery,
   useGetUserByNameQuery,
   useUpdateDriverCarMutation,
+  useCreateCarMutation,
 } = carsApi;

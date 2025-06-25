@@ -40,6 +40,8 @@ const requestSchema = z.object({
   routes: z.array(routeSchema).optional(),
   driver: z.string().nullable(),
   status_text: z.string(),
+  user_name: z.string(),
+  driver_name: z.string(),
 });
 
 const paginatedRequestsSchema = z.object({

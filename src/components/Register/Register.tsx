@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { registerSchema, type RegisterFormData } from "../../types/authSchema";
 import { useRegisterMutation } from "../../api/authApi";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { User, Mail, Lock, Phone } from "lucide-react";
+import { User, Mail, Lock, Phone, Building } from "lucide-react";
 import Confirm from "../Confirm/Confirm";
 import { logout } from "../../services/authSlice";
 
@@ -18,7 +18,7 @@ const Register: React.FC = () => {
     reset,
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { role: "user" },
+    defaultValues: { role: "user", subdepartment: "" },
   });
 
   const [registerUser, { isLoading, error }] = useRegisterMutation();
@@ -36,16 +36,25 @@ const Register: React.FC = () => {
       reset();
     } catch (err: any) {
       console.error("Ошибка регистрации:", err);
-      if (err.status === 400 && err.data?.email) {
-        setError("email", {
-          message: err.data.email[0] || "Этот email уже занят",
-        });
-      } else if (err.status === 400 && err.data?.number) {
-        setError("number", {
-          message: err.data.number[0] || "Неверный формат телефона",
-        });
-      } else if (err.status === 400 && err.data?.non_field_errors) {
-        setError("root", { message: err.data.non_field_errors[0] });
+      if (err.status === 400 && err.data) {
+        if (err.data.email) {
+          setError("email", {
+            message: err.data.email[0] || "Этот email уже занят",
+          });
+        }
+        if (err.data.number) {
+          setError("number", {
+            message: err.data.number[0] || "Неверный формат телефона",
+          });
+        }
+        if (err.data.subdepartment) {
+          setError("subdepartment", {
+            message: err.data.subdepartment[0] || "Ошибка в поле отдела",
+          });
+        }
+        if (err.data.non_field_errors) {
+          setError("root", { message: err.data.non_field_errors[0] });
+        }
       } else {
         setError("root", { message: "Произошла ошибка при регистрации" });
       }
@@ -126,7 +135,7 @@ const Register: React.FC = () => {
               </label>
               <div className="relative">
                 <Mail
-                  className="absolute left-3 top-1/2 transform -translate-y-y-1/2/2 text-gray-400"
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                   size="20"
                 />
                 <input
@@ -143,6 +152,7 @@ const Register: React.FC = () => {
                 </p>
               )}
             </div>
+
             <div className="relative">
               <label
                 htmlFor="number"
@@ -192,6 +202,32 @@ const Register: React.FC = () => {
               {errors.password && (
                 <p className="text-red-500 text-sm mt-1">
                   {errors.password.message}
+                </p>
+              )}
+            </div>
+
+            <div className="relative">
+              <label
+                htmlFor="subdepartment"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Отдел
+              </label>
+              <div className="relative">
+                <Building
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                  size={20}
+                />
+                <input
+                  id="subdepartment"
+                  {...register("subdepartment")}
+                  className="mt-1 p-2 pl-10 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Введите отдел"
+                />
+              </div>
+              {errors.subdepartment && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.subdepartment.message}
                 </p>
               )}
             </div>

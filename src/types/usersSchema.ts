@@ -1,4 +1,4 @@
-import z from "zod";
+import { z } from "zod";
 
 export const paginatedUsersSchema = z.object({
   count: z.number(),
@@ -14,6 +14,7 @@ export const paginatedUsersSchema = z.object({
         .optional()
         .transform((val) => val ?? ""),
       role: z.string(),
+      subdepartment: z.string(),
     })
   ),
 });
@@ -27,6 +28,7 @@ export const userSchema = z.object({
     .optional()
     .transform((val) => val ?? ""),
   role: z.enum(["dispetcher", "user", "driver", "admin"]),
+  subdepartment: z.string(),
 });
 
 export type User = z.infer<typeof userSchema>;

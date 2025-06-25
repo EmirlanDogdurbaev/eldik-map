@@ -1,0 +1,127 @@
+name: Deploy eldik_map to Google Cloud VM
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          export PATH="$HOME/.bun/bin:$PATH"
+          bun --version
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: |
+          export PATH="$HOME/.bun/bin:$PATH"
+          bun install
+
+      - name: Build frontend
+        run: |
+          export PATH="$HOME/.bun/bin:$PATH"
+          echo "Starting build at $(date)"
+          bun run build || {
+            echo "Build failed at $(date) with exit code $?"
+            exit 1
+          }
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          echo "SSH setup completed"
+
+          
+      - name: Deploy to VM
+        env:
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+        run: |
+          ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST << 'EOF'
+            echo "Connected to VM at $(date)"
+
+            REPO_DIR="/home/jigit38/rsk_taxi/eldik-map"
+
+            if [ ! -d "$REPO_DIR" ]; then
+              echo "Error: Directory $REPO_DIR does not exist"
+              exit 1
+            fi
+
+            cd "$REPO_DIR"
+
+            echo "Pulling latest code..."
+            git pull origin main || {
+              echo "Error: Git pull failed"
+              exit 1
+            }
+
+            if ! command -v bun >/dev/null 2>&1; then
+              echo "Installing Bun..."
+              curl -fsSL https://bun.sh/install | bash
+              export PATH="$HOME/.bun/bin:$PATH"
+            fi
+
+            export PATH="$HOME/.bun/bin:$PATH"
+
+            echo "Installing dependencies..."
+            bun install || {
+              echo "Error: Bun install failed"
+              exit 1
+            }
+
+            echo "Building project..."
+            bun run build || {
+              echo "Error: Build failed"
+              exit 1
+            }
+
+            echo "Deploying frontend..."
+            sudo rm -rf /var/www/frontend/dist/
+            sudo mv "$REPO_DIR/dist" /var/www/frontend/ || {
+              echo "Error: Copying files failed"
+              exit 1
+            }
+
+            echo "Setting permissions..."
+            sudo chmod -R 755 /var/www/frontend/dist
+            sudo chown -R www-data:www-data /var/www/frontend/dist
+
+            echo "Reloading Nginx..."
+            sudo systemctl reload nginx || {
+              echo "Error: Nginx reload failed"
+              exit 1
+            }
+
+            echo "Restarting Gunicorn..."
+            sudo systemctl restart gunicorn.service || {
+              echo "Error: Gunicorn restart failed"
+              exit 1
+            }
+
+            echo "Deployment completed at $(date)"
+          EOF
+

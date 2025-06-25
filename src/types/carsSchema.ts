@@ -5,6 +5,7 @@ export const CarSchema = z.object({
   name: z.string(),
   car_type: z.string(),
   number: z.string(),
+  id_car: z.number(),
 });
 
 export const CarsResponseSchema = z.object({

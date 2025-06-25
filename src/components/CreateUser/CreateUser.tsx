@@ -13,6 +13,7 @@ const CreateUser: React.FC = () => {
     number: "",
     role: "user",
     password: "",
+    subdepartment: "",
   });
 
   const [createUser, { isLoading }] = useCreateUserMutation();
@@ -30,8 +31,8 @@ const CreateUser: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!form.name || !form.email || !form.password) {
-      toast.error("Пожалуйста, заполните поля: имя, email и пароль", {
+    if (!form.name || !form.email || !form.password || !form.subdepartment) {
+      toast.error("Пожалуйста, заполните поля: имя, email, пароль и отдел", {
         position: "top-right",
       });
       return;
@@ -51,6 +52,13 @@ const CreateUser: React.FC = () => {
       return;
     }
 
+    if (form.subdepartment.length > 100) {
+      toast.error("Название отдела слишком длинное (максимум 100 символов)", {
+        position: "top-right",
+      });
+      return;
+    }
+
     try {
       await createUser(form).unwrap();
       toast.success("Пользователь успешно создан", { position: "top-right" });
@@ -59,6 +67,7 @@ const CreateUser: React.FC = () => {
       const message =
         err.data?.detail ||
         err.data?.password?.[0] ||
+        err.data?.subdepartment?.[0] ||
         "Произошла ошибка при создании пользователя";
       toast.error(message, { position: "top-right" });
     }
@@ -78,7 +87,7 @@ const CreateUser: React.FC = () => {
         <ArrowLeft /> Назад к пользователям
       </Link>
       <div className="flex min-h-screen">
-        <div className="px-5 bg-white rounded-md w-full ">
+        <div className="px-5 bg-white rounded-md w-full">
           <h2 className="text-2xl font-bold mb-6">Создать пользователя</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -124,7 +133,17 @@ const CreateUser: React.FC = () => {
                 className="w-full"
               />
             </div>
-
+            <div>
+              <Input
+                type="text"
+                name="subdepartment"
+                value={form.subdepartment}
+                onChange={handleChange}
+                placeholder="Отдел"
+                className="w-full"
+                required
+              />
+            </div>
             <div>
               <label className="block text-sm font-medium mb-1">Роль</label>
               <select
@@ -143,7 +162,6 @@ const CreateUser: React.FC = () => {
                 ))}
               </select>
             </div>
-
             <Button
               type="submit"
               disabled={isLoading}
@@ -152,7 +170,6 @@ const CreateUser: React.FC = () => {
               {isLoading ? "Создание..." : "Создать"}
             </Button>
           </form>
-
           <ToastContainer
             position="top-right"
             autoClose={3000}
