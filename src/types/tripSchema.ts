@@ -28,3 +28,14 @@ export interface TripResponse {
     time: string;
   }[];
 }
+
+export interface RouteItem {
+  goal: string;
+  departure: string;
+  destination: string;
+  time: string;
+  departure_coordinates?: [string, string];
+  destination_coordinates?: [string, string];
+  transport_type?: string;
+  travel_date?: string;
+}

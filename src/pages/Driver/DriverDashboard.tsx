@@ -1,4 +1,5 @@
 import { useAppSelector } from "../../store/hooks";
+import HistoryRoutesPage from "../../components/HistoryRoutesPage/HistoryRoutesPage";
 
 const DriverDashboard: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth);
@@ -10,6 +11,7 @@ const DriverDashboard: React.FC = () => {
         Добро пожаловать, {user?.name}! Здесь вы можете видеть назначенные
         поездки.
       </p>
+      <HistoryRoutesPage />
     </div>
   );
 };

@@ -11,6 +11,7 @@ import AdminUsers from "./components/AdminUsers/AdminUsers";
 import CreateUser from "./components/CreateUser/CreateUser";
 import DispatcherDashboard from "./pages/Dispatcher/DispatcherDashboard";
 import RequestDetail from "./components/RequestDetail/RequestDetail";
+import DriverDashboard from "./pages/Driver/DriverDashboard";
 import { useFirebaseMessaging } from "./ui/useFirebaseMessaging";
 import { ToastContainer } from "react-toastify";
 import DriverCarAssignment from "./components/Cars/Cars";
@@ -47,7 +48,7 @@ function App() {
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["driver"]} />}>
-          <Route path="/driver/dashboard" element={<div>driver page</div>} />
+          <Route path="/driver/dashboard" element={<DriverDashboard />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/map" replace />} />
