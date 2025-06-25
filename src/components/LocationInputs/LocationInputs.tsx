@@ -45,6 +45,7 @@ interface LocationInputsProps {
   errors: any;
   setValue: any;
   control: any;
+  onCloseSidebar?: () => void;
 }
 
 // ====== Геофильтр для Кыргызстана ======
@@ -81,6 +82,7 @@ const LocationInputs: React.FC<LocationInputsProps> = ({
   setValue,
   clearTrigger,
   control,
+  onCloseSidebar,
 }) => {
   const [queries, setQueries] = useState<{
     departure: string;
@@ -289,6 +291,8 @@ const LocationInputs: React.FC<LocationInputsProps> = ({
     setSuggestions((s) => ({ ...s, [type]: [] }));
     setDropdownsOpen((d) => ({ ...d, [type]: false }));
     saveToHistory(type, suggestion.display_name);
+
+    if (onCloseSidebar) onCloseSidebar();
   };
 
   const handleKeyDown = async (

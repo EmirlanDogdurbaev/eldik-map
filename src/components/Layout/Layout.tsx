@@ -11,7 +11,9 @@ const Layout: React.FC<Props> = ({ children, className }) => {
       <Nav />
       <NotificationHandler />
       <main className="flex w-full">
-        <div className={`${className} mx-auto pb-4`}>{children}</div>
+        <div className={`${className} mx-auto pb-4 overflow-hidden`}>
+          {children}
+        </div>
       </main>
     </div>
   );

@@ -15,7 +15,7 @@ import DriverDashboard from "./pages/Driver/DriverDashboard";
 import { useFirebaseMessaging } from "./ui/useFirebaseMessaging";
 import { ToastContainer } from "react-toastify";
 import DriverCarAssignment from "./components/Cars/Cars";
-import Reports from "./components/Report/Report";
+import Reports from "./components/Reports/Reports";
 
 function App() {
   useFirebaseMessaging();

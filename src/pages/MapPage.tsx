@@ -150,7 +150,7 @@ const MapPage: React.FC = () => {
 
   return (
     <>
-      <div className="flex h-screen w-[100vw]">
+      <div className="custom-class flex h-screen w-[100vw] overflow-hidden">
         <Sidebar
           className="flex-shrink-0"
           departure={points.departure}
@@ -160,8 +160,9 @@ const MapPage: React.FC = () => {
           selecting={selecting}
           setSelecting={setSelecting}
         />
+
         <MapContainer
-          style={{ height: "100%" }}
+          style={{ height: "150%" }}
           className="flex-1 min-w-0"
           zoom={13}
           zoomControl={false}
