@@ -220,6 +220,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       localStorage.getItem("route_coords") || "{}"
     );
 
+    const typeMap: Record<string, string> = {
+      car: "light",
+      truck: "cargo",
+      bus: "passenger",
+    };
+
     const payload = finalRoutes.map((route, index) => {
       const coords = coordsStore[index] || {};
 
@@ -232,6 +238,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             departure: route.departure,
             destination: route.destination,
             time: route.time,
+            transport_type: typeMap[route.vehicleType],
             departure_coordinates: coords.departure
               ? [
                   coords.departure.lat.toString(),
@@ -319,7 +326,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         destination));
 
   const asideClass = `
-  fixed bottom-0 left-0 right-0 w-full h-screen bg-blue-100 border-t overflow-auto rounded-t-2xl shadow-lg
+  fixed bottom-0 left-0 right-0 top-[96px]  bg-blue-100 border-t overflow-auto rounded-t-2xl shadow-lg
   transition-transform duration-200 will-change-transform z-[500]
   sm:static sm:translate-y-0 sm:w-95 sm:h-auto sm:border-t-0 sm:border-r sm:rounded-none sm:shadow-none sm:z-10
 `;
@@ -328,12 +335,15 @@ const Sidebar: React.FC<SidebarProps> = ({
     <>
       <aside
         ref={sidebarRef}
-        className={asideClass + " p-4 sm:p-6 flex flex-col gap-6"}
+        className={asideClass + " p-2 sm:p-6 flex flex-col gap-6"}
+        // style={{
+        //   overflow: isOpen ? "auto" : "hidden", // ← Управляем прокруткой
+        // }}
       >
         <div className="relative sm:hidden flex justify-center items-center mt-2 mb-4">
           <div
             ref={dragRef}
-            className="w-32 h-2 bg-gray-500 rounded-full cursor-grab active:cursor-grabbing touch-none"
+            className="w-36 h-4 bg-gray-500 rounded-full cursor-grab active:cursor-grabbing touch-none"
           ></div>
           <button
             ref={toggleRef}

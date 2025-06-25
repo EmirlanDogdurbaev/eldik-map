@@ -9,6 +9,7 @@ export function useDraggableSidebar(visibleHead = 60) {
   const [isDragging, setIsDragging] = useState(false);
   const [startY, setStartY] = useState(0);
   const [startTr, setStartTr] = useState(0);
+  const openOffset = 0;
 
   function getClosed() {
     return (sidebarRef.current?.offsetHeight ?? 0) - visibleHead;
@@ -21,7 +22,7 @@ export function useDraggableSidebar(visibleHead = 60) {
   function openPanel() {
     if (!sidebarRef.current) return;
     sidebarRef.current.style.transition = "";
-    setTr(0);
+    setTr(openOffset);
     setIsOpen(true);
   }
   function closePanel() {
