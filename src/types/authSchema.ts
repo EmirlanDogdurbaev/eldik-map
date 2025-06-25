@@ -13,7 +13,11 @@ export const registerSchema = z.object({
     .regex(/^\+?\d{10,15}$/, "Неверный формат номера телефона")
     .min(1, "Номер телефона обязателен"),
   password: z.string().min(6, "Пароль должен быть минимум 6 символов"),
-  role: z.literal("user"), 
+  role: z.literal("user"),
+  subdepartment: z
+    .string()
+    .min(1, "Отдел обязателен")
+    .max(100, "Название отдела слишком длинное"),
 });
 
 export const verifySchema = z.object({

@@ -6,6 +6,7 @@ import { tripApi } from "../api/tripApi";
 import { usersApi } from "../api/usersApi";
 import { requestsApi } from "../api/requestsApi";
 import { carsApi } from "../api/carsApi";
+import { reportApi } from "../api/reportApi";
 
 export const store = configureStore({
   reducer: {
@@ -15,6 +16,7 @@ export const store = configureStore({
     [usersApi.reducerPath]: usersApi.reducer,
     [requestsApi.reducerPath]: requestsApi.reducer,
     [carsApi.reducerPath]: carsApi.reducer,
+    [reportApi.reducerPath]: reportApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -22,7 +24,8 @@ export const store = configureStore({
       .concat(tripApi.middleware)
       .concat(usersApi.middleware)
       .concat(requestsApi.middleware)
-      .concat(carsApi.middleware),
+      .concat(carsApi.middleware)
+      .concat(reportApi.middleware),
 });
 
 setupListeners(store.dispatch);

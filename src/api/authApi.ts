@@ -27,7 +27,6 @@ export const deleteFCMToken = async () => {
   }
   try {
     await deleteToken(messaging);
-    console.log("FCM token deleted successfully");
   } catch (error) {
     console.error("Error deleting FCM token:", error);
   }
@@ -53,12 +52,9 @@ export const authApi = createApi({
           const { data } = await queryFulfilled;
           localStorage.setItem("access_token", data.access);
           localStorage.setItem("refresh_token", data.refresh);
-          console.log("Токен сохранён:", localStorage.getItem("access_token")); // Для отладки
-          toast.success("Успешный вход!");
 
           await deleteFCMToken();
           const currentToken = await requestForToken();
-          console.log("FCM токен:", currentToken);
           if (
             currentToken &&
             typeof currentToken === "string" &&
@@ -70,10 +66,8 @@ export const authApi = createApi({
                   fcm_token: currentToken,
                 })
               ).unwrap();
-              toast.success("FCM токен сохранён!");
             } catch (fcmError) {
               console.error("Ошибка сохранения FCM токена:", fcmError);
-              toast.error("Не удалось сохранить FCM токен");
             }
           } else {
             toast.warn("Не удалось получить FCM токен. Разрешите уведомления.");
@@ -132,7 +126,6 @@ export const authApi = createApi({
     saveFCMToken: builder.mutation<SaveFCMTokenResponse, { fcm_token: string }>(
       {
         query: (data) => {
-          console.log("Отправка saveFCMToken:", data); // Для отладки
           return {
             url: "save-fcm-token/",
             method: "POST",
@@ -140,14 +133,12 @@ export const authApi = createApi({
           };
         },
         transformErrorResponse: (response) => {
-          console.error("Ошибка saveFCMToken:", response); // Для отладки
-          toast.error(`Ошибка сохранения FCM токена: `);
           return {
             status: response.status,
             data: response.data,
           };
         },
-        extraOptions: { maxRetries: 0 }, // Отключаем ретрай
+        extraOptions: { maxRetries: 0 },
       }
     ),
   }),

@@ -1,6 +1,11 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { authFetchBaseQuery } from "./authFetchBaseQuery";
-import { paginatedUsersSchema, userSchema, type PaginatedUsers, type User } from "../types/usersSchema";
+import {
+  paginatedUsersSchema,
+  userSchema,
+  type PaginatedUsers,
+  type User,
+} from "../types/usersSchema";
 
 export const usersApi = createApi({
   reducerPath: "usersApi",
@@ -81,7 +86,13 @@ export const usersApi = createApi({
     }),
     createUser: builder.mutation<
       User,
-      { name: string; email: string; number?: string; role: string }
+      {
+        name: string;
+        email: string;
+        number?: string;
+        role: string;
+        subdepartment: string;
+      }
     >({
       query: (body) => ({
         url: "users/",
@@ -111,4 +122,3 @@ export const {
   useCreateUserMutation,
 } = usersApi;
 export type { User };
-
