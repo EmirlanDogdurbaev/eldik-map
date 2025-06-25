@@ -39,6 +39,9 @@ const Login: React.FC = () => {
     }
   };
 
+  console.log(login);
+  console.log(dispatch);
+
   const getErrorMessage = () => {
     if (!error) return null;
     if ("status" in error) {
