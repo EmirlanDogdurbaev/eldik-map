@@ -15,7 +15,8 @@ import DriverDashboard from "./pages/Driver/DriverDashboard";
 import { useFirebaseMessaging } from "./ui/useFirebaseMessaging";
 import { ToastContainer } from "react-toastify";
 import DriverCarAssignment from "./components/Cars/Cars";
-import Reports from "./components/Report/Report";
+import Reports from "./components/Reports/Reports";
+import RedirectByRole from "./components/RedirectByRole/RedirectByRole";
 
 function App() {
   useFirebaseMessaging();
@@ -27,9 +28,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/403" element={<AccessDenied />} />
 
-        <Route element={<ProtectedRoute />}>
-          <Route path="/map" element={<MapPage />} />
-        </Route>
+        <Route path="/" element={<RedirectByRole />} />
 
         <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
           <Route path="/admin" element={<AdminUsers />} />
@@ -45,13 +44,14 @@ function App() {
 
         <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
           <Route path="/user/dashboard" element={<Home />} />
+          <Route path="/map" element={<MapPage />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["driver"]} />}>
           <Route path="/driver/dashboard" element={<DriverDashboard />} />
         </Route>
 
-        <Route path="*" element={<Navigate to="/map" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Layout>
   );

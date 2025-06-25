@@ -1,26 +1,35 @@
-const roles = ["dispetcher", "user", "driver"] as const;
+import type { FilterField } from "../types/types";
 
-export const filterFields = [
+export const filterFields: FilterField[] = [
   {
-    type: "text" as const,
+    type: "text",
     key: "name",
     label: "Имя",
-    placeholder: "Поиск по имени",
+    placeholder: "Введите имя",
+    required: false,
+    hint: undefined, // Or e.g., "Введите имя пользователя"
+    options: [], // Or omit if FilterField allows undefined
   },
   {
-    type: "text" as const,
+    type: "text",
     key: "email",
     label: "Email",
-    placeholder: "Поиск по email",
+    placeholder: "Введите email",
+    required: false,
+    hint: undefined, // Or e.g., "Введите email адрес"
+    options: [], // Or omit if FilterField allows undefined
   },
   {
-    type: "select" as const,
+    type: "select",
     key: "role",
     label: "Роль",
-    placeholder: "Все роли",
-    options: roles.map((role) => ({
-      value: role,
-      label: role.charAt(0).toUpperCase() + role.slice(1),
-    })),
+    placeholder: "Выберите роль",
+    required: false,
+    hint: undefined, // Or e.g., "Выберите роль пользователя"
+    options: [
+      { value: "user", label: "Пользователь" },
+      { value: "driver", label: "Водитель" },
+      { value: "dispatcher", label: "Диспетчер" }, // Fixed typo
+    ],
   },
 ];

@@ -543,7 +543,6 @@ const Report = () => {
   return (
     <div className="min-h-screen w-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       <div className="max-w-7xl mx-auto p-6">
-        {/* Header */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center justify-center p-4 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-lg mb-6">
             <span className="text-4xl text-white">📊</span>
@@ -556,9 +555,7 @@ const Report = () => {
           </p>
         </div>
 
-        {/* Reports Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Driver Load Report */}
           <ReportCard
             title="Загрузка водителей"
             description="Анализ эффективности работы водителей"
@@ -580,7 +577,6 @@ const Report = () => {
             </div>
           </ReportCard>
 
-          {/* Requests Report */}
           <ReportCard
             title="Отчет по заявкам"
             description="Статистика обработки заявок"
@@ -601,7 +597,6 @@ const Report = () => {
             </div>
           </ReportCard>
 
-          {/* User Activity Report */}
           <ReportCard
             title="Активность пользователей"
             description="Мониторинг пользовательской активности"
@@ -640,7 +635,6 @@ const Report = () => {
             </div>
           </ReportCard>
 
-          {/* Waybill Report */}
           <ReportCard
             title="Путевые листы"
             description="Детальные отчеты по путевым листам"
@@ -714,7 +708,6 @@ const Report = () => {
             </div>
           </ReportCard>
 
-          {/* Route Sheet Report */}
           <ReportCard
             title="Маршрутные листы"
             description="Детальные отчеты по маршрутным листам"
