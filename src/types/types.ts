@@ -25,6 +25,8 @@ export interface RequestsResponse {
 }
 
 export interface FilterField {
+  required?: any;
+  hint?: any;
   type: "text" | "select";
   key: string;
   label: string;

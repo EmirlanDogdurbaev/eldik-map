@@ -37,6 +37,7 @@ interface SidebarProps {
   setDestination: (coords: { lat: number; lng: number } | null) => void;
   selecting: "departure" | "destination" | null;
   setSelecting: (type: "departure" | "destination" | null) => void;
+  
 }
 
 type RouteItem = {

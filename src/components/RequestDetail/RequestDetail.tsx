@@ -9,10 +9,24 @@ import {
   type Request,
 } from "../../api/requestsApi";
 import { toast, ToastContainer } from "react-toastify";
-import Button from "../../ui/Button";
+
 import CustomSelect from "../../ui/Select";
 import RejectModal from "../../ui/RejectModal";
-import { ArrowLeft } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  User,
+  MessageSquare,
+  Car,
+  CheckCircle,
+  XCircle,
+  Clock,
+  MapPin,
+  Target,
+  Users,
+  Route as RouteIcon,
+  FileText,
+} from "lucide-react";
 import { skipToken } from "@reduxjs/toolkit/query";
 
 interface Option {
@@ -26,16 +40,14 @@ const STATUS_MAP = {
   rejected: 2,
 } as const;
 
-// Constants for better maintainability
 const TOAST_CONFIG = {
   position: "top-right" as const,
   autoClose: 3000,
-  theme: "dark" as const,
+  theme: "light" as const,
 };
 
 const DRIVERS_QUERY_LIMIT = 100;
 
-// Custom hooks for better separation of concerns
 const useDriverSelection = (routes?: Route[]) => {
   const [selectedDrivers, setSelectedDrivers] = useState<
     Record<string, Option | null>
@@ -60,7 +72,6 @@ const useDriverSelection = (routes?: Route[]) => {
     []
   );
 
-  // Validation logic
   const validationResult = useMemo(() => {
     const driverNames = Object.values(selectedDrivers)
       .filter((driver): driver is Option => driver !== null)
@@ -99,81 +110,269 @@ const useDriverSelection = (routes?: Route[]) => {
   };
 };
 
-// Loading component
 const LoadingSpinner: React.FC = () => (
-  <div className="flex justify-center p-4">Загрузка...</div>
-);
-
-// Error component
-const ErrorMessage: React.FC<{ message: string }> = ({ message }) => (
-  <div className="text-red-500 p-4">{message}</div>
-);
-
-// Request info component
-const RequestInfo: React.FC<{ request: Request }> = ({ request }) => (
-  <div className="bg-white p-4 rounded-lg shadow-md mb-4">
-    <p>
-      <strong>Дата:</strong> {new Date(request.date).toLocaleDateString()}
-    </p>
-    <p>
-      <strong>Пользователь:</strong> {request.user_name}
-    </p>
-    <p>
-      <strong>Статус:</strong> {request.status_text}
-    </p>
-    <p>
-      <strong>Комментарии:</strong> {request.comments || "Нет комментариев"}
-    </p>
-    <p>
-      <strong>Водитель:</strong> {request.driver_name || "Не назначен"}
-    </p>
+  <div className="flex justify-center items-center min-h-64">
+    <div className="w-8 h-8 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+    <span className="ml-3 text-gray-600">Загрузка данных заявки...</span>
   </div>
 );
 
-// Route table component
+const ErrorMessage: React.FC<{ message: string }> = ({ message }) => (
+  <div className="bg-white rounded-xl shadow-sm border border-red-200 p-6">
+    <div className="flex items-center space-x-3">
+      <XCircle className="w-6 h-6 text-red-500" />
+      <div>
+        <h3 className="text-lg font-semibold text-red-800">Ошибка загрузки</h3>
+        <p className="text-red-600 mt-1">{message}</p>
+      </div>
+    </div>
+  </div>
+);
+
+const getStatusBadge = (statusText: string) => {
+  const statusMap: Record<string, { bg: string; text: string; icon: string }> =
+    {
+      "В ожидании": {
+        bg: "bg-yellow-100 text-yellow-800",
+        text: "В ожидании",
+        icon: "⏳",
+      },
+      Одобрено: {
+        bg: "bg-green-100 text-green-800",
+        text: "Одобрено",
+        icon: "✅",
+      },
+      Отклонено: {
+        bg: "bg-red-100 text-red-800",
+        text: "Отклонено",
+        icon: "❌",
+      },
+      "В обработке": {
+        bg: "bg-blue-100 text-blue-800",
+        text: "В обработке",
+        icon: "🔄",
+      },
+      created: {
+        bg: "bg-yellow-100 text-yellow-800",
+        text: "Создана",
+        icon: "⏳",
+      },
+      approved: {
+        bg: "bg-green-100 text-green-800",
+        text: "Одобрена",
+        icon: "✅",
+      },
+      rejected: {
+        bg: "bg-red-100 text-red-800",
+        text: "Отклонена",
+        icon: "❌",
+      },
+    };
+
+  const status = statusMap[statusText] || {
+    bg: "bg-gray-100 text-gray-800",
+    text: statusText,
+    icon: "📋",
+  };
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${status.bg}`}
+    >
+      <span>{status.icon}</span>
+      {status.text}
+    </span>
+  );
+};
+
+const RequestInfo: React.FC<{ request: Request }> = ({ request }) => (
+  <div className="space-y-6">
+    {/* Header */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+            <FileText className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Заявка #{request.id}
+            </h1>
+            <p className="text-gray-600">Детальная информация о заявке</p>
+          </div>
+        </div>
+        {getStatusBadge(request.status_text)}
+      </div>
+    </div>
+
+    {/* Info Cards */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600">Дата создания</p>
+            <p className="text-lg font-bold text-gray-900">
+              {new Date(request.date).toLocaleDateString("ru-RU")}
+            </p>
+          </div>
+          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+            <Calendar className="w-6 h-6 text-blue-600" />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600">Заявитель</p>
+            <p className="text-lg font-bold text-gray-900">
+              {request.user_name}
+            </p>
+          </div>
+          <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+            <User className="w-6 h-6 text-green-600" />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600">Водитель</p>
+            <p className="text-lg font-bold text-gray-900">
+              {request.driver_name || "Не назначен"}
+            </p>
+          </div>
+          <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+            <Car className="w-6 h-6 text-purple-600" />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600">Комментарии</p>
+            <p className="text-lg font-bold text-gray-900">
+              {request.comments ? "Есть" : "Нет"}
+            </p>
+          </div>
+          <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+            <MessageSquare className="w-6 h-6 text-orange-600" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Comments Section */}
+    {request.comments && (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-start space-x-4">
+          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+            <MessageSquare className="w-4 h-4 text-blue-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Комментарии
+            </h3>
+            <p className="text-gray-700 leading-relaxed">{request.comments}</p>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+);
+
 const RouteTable: React.FC<{
   route: Route;
   drivers: Option[];
   selectedDriver: Option | null;
   onDriverChange: (driver: Option | null) => void;
 }> = ({ route, drivers, selectedDriver, onDriverChange }) => (
-  <div className="mb-4">
-    <h3 className="text-xl font-semibold mb-2">Маршрут</h3>
-    <table className="w-full bg-white border rounded-lg shadow-md">
-      <thead>
-        <tr className="bg-gray-50">
-          <th className="p-2 text-left">Цель</th>
-          <th className="p-2 text-left">Отправление</th>
-          <th className="p-2 text-left">Назначение</th>
-          <th className="p-2 text-left">Время</th>
-          <th className="p-2 text-left">Использование</th>
-          <th className="p-2 text-left">Водитель</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr className="border-t hover:bg-gray-50">
-          <td className="p-2 min-w-52 text-left">
-            {route.goal || "Не указана"}
-          </td>
-          <td className="p-2 min-w-52 text-left">
-            {route.departure || "Не указано"}
-          </td>
-          <td className="p-2 min-w-52 text-left">
-            {route.destination || "Не указано"}
-          </td>
-          <td className="p-2 min-w-42 text-left">{route.time}</td>
-          <td className="p-2 min-w-42 text-left">{route.usage_count}</td>
-          <td className="p-2 min-w-72 text-left">
+  <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div className="px-6 py-4 border-b border-gray-200">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+          <RouteIcon className="w-4 h-4 text-blue-600" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900">
+          Информация о маршруте
+        </h3>
+      </div>
+    </div>
+
+    <div className="p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <div className="flex items-start space-x-3">
+            <Target className="w-5 h-5 text-gray-400 mt-1" />
+            <div>
+              <p className="text-sm font-medium text-gray-600">Цель поездки</p>
+              <p className="text-gray-900 font-medium">
+                {route.goal || "Не указана"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start space-x-3">
+            <MapPin className="w-5 h-5 text-gray-400 mt-1" />
+            <div>
+              <p className="text-sm font-medium text-gray-600">Отправление</p>
+              <p className="text-gray-900 font-medium">
+                {route.departure || "Не указано"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start space-x-3">
+            <MapPin className="w-5 h-5 text-gray-400 mt-1" />
+            <div>
+              <p className="text-sm font-medium text-gray-600">Назначение</p>
+              <p className="text-gray-900 font-medium">
+                {route.destination || "Не указано"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-start space-x-3">
+            <Clock className="w-5 h-5 text-gray-400 mt-1" />
+            <div>
+              <p className="text-sm font-medium text-gray-600">Время</p>
+              <p className="text-gray-900 font-medium text-lg">{route.time}</p>
+            </div>
+          </div>
+
+          <div className="flex items-start space-x-3">
+            <Users className="w-5 h-5 text-gray-400 mt-1" />
+            <div>
+              <p className="text-sm font-medium text-gray-600">
+                Количество пассажиров
+              </p>
+              <p className="text-gray-900 font-medium">
+                {route.usage_count} человек
+              </p>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-200 pt-4 ">
+            <div className="flex items-center space-x-3 mb-3">
+              <Car className="w-5 h-5 text-gray-400" />
+              <p className="text-sm font-medium text-gray-600">
+                Назначить водителя
+              </p>
+            </div>
             <CustomSelect
               options={drivers}
               value={selectedDriver}
               onChange={(value) => onDriverChange(value as Option | null)}
               placeholder="Выберите водителя"
             />
-          </td>
-        </tr>
-      </tbody>
-    </table>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 );
 
@@ -182,7 +381,6 @@ const RequestDetail: React.FC = () => {
   const [comment, setComment] = useState("");
   const [showReject, setShowReject] = useState(false);
 
-  // API queries
   const {
     data: request,
     isLoading: isRequestLoading,
@@ -198,7 +396,6 @@ const RequestDetail: React.FC = () => {
     }
   );
 
-  // Custom hook for driver selection
   const {
     selectedDrivers,
     selectedDriverName,
@@ -207,7 +404,6 @@ const RequestDetail: React.FC = () => {
     validationResult,
   } = useDriverSelection(request?.routes);
 
-  // Driver options
   const drivers = useMemo(
     (): Option[] =>
       (driversData?.results || []).map((d) => ({
@@ -324,7 +520,15 @@ const RequestDetail: React.FC = () => {
 
   // Render loading state
   if (isLoading) {
-    return <LoadingSpinner />;
+    return (
+      <div className="min-h-screen w-screen bg-gradient-to-br from-gray-50 to-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+            <LoadingSpinner />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Render error state
@@ -332,78 +536,94 @@ const RequestDetail: React.FC = () => {
     const errorMessage = driverIdError
       ? "Ошибка загрузки данных водителя"
       : "Ошибка загрузки данных заявки";
-    return <ErrorMessage message={errorMessage} />;
+    return (
+      <div className="min-h-screen w-screen bg-gradient-to-br from-gray-50 to-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <ErrorMessage message={errorMessage} />
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="p-6 min-w-7xl mx-auto">
-      {/* Back navigation */}
-      <div>
-        <Link
-          to="/dispatcher"
-          className="text-blue-500 hover:underline mb-4 inline-flex items-center gap-1"
-        >
-          <ArrowLeft size={16} />
-          Вернуться назад
-        </Link>
-      </div>
-
-      {/* Page title */}
-      <h2 className="text-2xl font-bold mb-6">Детали заявки #{request.id}</h2>
-
-      {/* Request information */}
-      <RequestInfo request={request} />
-
-      {/* Routes */}
-      {request.routes &&
-        request.routes.length > 0 &&
-        request.routes.map((route: Route) => (
-          <RouteTable
-            key={route.id}
-            route={route}
-            drivers={drivers}
-            selectedDriver={selectedDrivers[route.id] || null}
-            onDriverChange={(driver) => updateDriverForRoute(route.id, driver)}
-          />
-        ))}
-
-      {/* Show message if no routes */}
-      {(!request.routes || request.routes.length === 0) && (
-        <div className="bg-gray-50 p-4 rounded-lg mb-4">
-          <p className="text-gray-600">Маршруты не найдены для данной заявки</p>
+    <div className="min-h-screen w-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      
+        <div className="flex items-center">
+          <Link
+            to="/dispatcher"
+            className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-800 font-medium transition-colors duration-200 bg-white px-4 py-2 rounded-lg shadow-sm hover:shadow-md border border-gray-200"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Вернуться к списку заявок</span>
+          </Link>
         </div>
-      )}
 
-      {/* Action buttons */}
-      <div className="mt-4 space-x-2 flex justify-end">
-        <Button
-          onClick={handleApprove}
-          disabled={isActionDisabled || request.status === STATUS_MAP.approved}
-          className="bg-green-500 hover:bg-green-600 py-4 px-6 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Одобрить
-        </Button>
-        <Button
-          onClick={() => setShowReject(true)}
-          disabled={isActionDisabled}
-          className="bg-red-500 hover:bg-red-600 py-4 px-6 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Отклонить
-        </Button>
+        <RequestInfo request={request} />
+
+        <div className="space-y-6">
+          {request.routes && request.routes.length > 0 ? (
+            request.routes.map((route: Route) => (
+              <RouteTable
+                key={route.id}
+                route={route}
+                drivers={drivers}
+                selectedDriver={selectedDrivers[route.id] || null}
+                onDriverChange={(driver) =>
+                  updateDriverForRoute(route.id, driver)
+                }
+              />
+            ))
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MapPin className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Маршруты не найдены
+              </h3>
+              <p className="text-gray-600">
+                Для данной заявки не найдено ни одного маршрута
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 ">
+          <div className="flex flex-col sm:flex-row justify-end space-y-4 sm:space-y-0 sm:space-x-4">
+            <button
+              onClick={handleApprove}
+              disabled={
+                isActionDisabled || request.status === STATUS_MAP.approved
+              }
+              className="inline-flex items-center justify-center px-6 py-3 bg-green-600 text-white font-medium rounded-lg shadow-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+            >
+              <CheckCircle className="w-5 h-5 mr-2" />
+              Одобрить заявку
+            </button>
+
+            <button
+              onClick={() => setShowReject(true)}
+              disabled={isActionDisabled}
+              className="inline-flex items-center justify-center px-6 py-3 bg-red-600 text-white font-medium rounded-lg shadow-sm hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+            >
+              <XCircle className="w-5 h-5 mr-2" />
+              Отклонить заявку
+            </button>
+          </div>
+        </div>
+
+        {showReject && (
+          <RejectModal
+            comment={comment}
+            onChange={setComment}
+            onConfirm={handleReject}
+            onCancel={() => setShowReject(false)}
+            isLoading={isUpdating}
+          />
+        )}
+        <ToastContainer {...TOAST_CONFIG} />
       </div>
-
-      {/* Reject modal */}
-      {showReject && (
-        <RejectModal
-          comment={comment}
-          onChange={setComment}
-          onConfirm={handleReject}
-          onCancel={() => setShowReject(false)}
-          isLoading={isUpdating}
-        />
-      )}
-
-      <ToastContainer {...TOAST_CONFIG} />
     </div>
   );
 };

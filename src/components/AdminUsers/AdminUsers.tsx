@@ -163,10 +163,10 @@ const AdminUsers: React.FC = () => {
     : null;
 
   return (
-    <div className="px-3 py-4 mx-auto max-w-7xl min-w-7xl w-full">
+    <div className="px-1 py-4 mx-auto max-w-7xl min-w-7xl w-full">
       <h2 className="text-2xl font-bold mb-6 p-3">Управление пользователями</h2>
 
-      <div className="flex items-center justify-between mb-4 p-3">
+      <div className="flex items-end justify-between mb-4 p-3">
         <Filters
           fields={filterFields}
           values={filters}
