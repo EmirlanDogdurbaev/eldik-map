@@ -17,6 +17,7 @@ import { ToastContainer } from "react-toastify";
 import DriverCarAssignment from "./components/Cars/Cars";
 import Reports from "./components/Reports/Reports";
 import RedirectByRole from "./components/RedirectByRole/RedirectByRole";
+import { Test } from "./pages/test";
 
 function App() {
   useFirebaseMessaging();
@@ -27,6 +28,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/403" element={<AccessDenied />} />
+        <Route path="/test" element={<Test />} />
 
         <Route path="/" element={<RedirectByRole />} />
 
