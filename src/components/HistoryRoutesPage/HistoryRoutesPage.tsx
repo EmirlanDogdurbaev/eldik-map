@@ -228,6 +228,7 @@ const HistoryRoutesPage: React.FC = () => {
       }
       setModalLoading(false);
       resetOdometer();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error("Ошибка при обновлении времени маршрута:", err);
       setModalLoading(false);
