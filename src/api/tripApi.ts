@@ -6,7 +6,6 @@ export const tripApi = createApi({
   reducerPath: "tripApi",
   baseQuery: authFetchBaseQuery(),
 
-  // ✅ Добавляем список тегов
   tagTypes: ["HistoryRoutes"],
 
   endpoints: (builder) => ({
@@ -16,7 +15,6 @@ export const tripApi = createApi({
         method: "POST",
         body: data,
       }),
-      // ✅ Обозначаем, что этот запрос **инвалидирует** кеш истории
       invalidatesTags: ["HistoryRoutes"],
     }),
 
@@ -35,10 +33,29 @@ export const tripApi = createApi({
         url: `historyroutes/${user_id}/`,
         params: { limit, offset, completed },
       }),
-      // ✅ Обозначаем, что этот запрос **зависит от** тега
       providesTags: ["HistoryRoutes"],
+    }),
+
+    updateRouteTime: builder.mutation<
+      void,
+      {
+        requestId: string;
+        routeId: string;
+        data: { action: "start" | "end"; time: string; odometer: number };
+      }
+    >({
+      query: ({ requestId, routeId, data }) => ({
+        url: `requests/${requestId}/routes/${routeId}/time`,
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["HistoryRoutes"],
     }),
   }),
 });
 
-export const { useCreateTripMutation, useGetHistoryRoutesQuery } = tripApi;
+export const {
+  useCreateTripMutation,
+  useGetHistoryRoutesQuery,
+  useUpdateRouteTimeMutation,
+} = tripApi;

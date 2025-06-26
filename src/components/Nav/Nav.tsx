@@ -8,7 +8,7 @@ const Nav = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   return (
-    <header className=" bg-gray-800 ">
+    <header className=" bg-gray-800 sticky top-0 z-5000 shadow-md">
       <nav className=" max-w-[1300px] mx-auto flex items-center justify-between  text-white">
         <Logo className="p-4" />
         <ul className="flex space-x-4">

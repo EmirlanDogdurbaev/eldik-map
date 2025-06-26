@@ -5,12 +5,13 @@ import { z } from "zod";
 import {
   useCreateTripMutation,
   useGetHistoryRoutesQuery,
+  useUpdateRouteTimeMutation,
 } from "../../api/tripApi";
 import Pagination from "../../ui/Pagination";
 import Modal from "../../ui/Modal";
 import Button from "../../ui/Button";
 import Textarea from "../../ui/Textarea";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Play } from "lucide-react";
 import { extractCleanRoute } from "../../utils/routeUtils";
 import type { RouteItem } from "../../types/tripSchema";
 
@@ -54,17 +55,30 @@ const resendTripSchema = z
     }
   );
 
+const odometerSchema = z.object({
+  odometer: z
+    .number()
+    .min(0, "Значение одометра не может быть отрицательным")
+    .int("Значение одометра должно быть целым числом"),
+});
+
 type ResendTripFormData = z.infer<typeof resendTripSchema>;
+type OdometerFormData = z.infer<typeof odometerSchema>;
 
 const HistoryRoutesPage: React.FC = () => {
+  const role = localStorage.getItem("role") ?? "user";
   const user_id = localStorage.getItem("user_id") ?? "";
   const [limit] = useState(5);
   const [offset, setOffset] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
+  const [odometerModalOpen, setOdometerModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [modalTitle, setModalTitle] = useState("Оповещение");
   const [modalMessage, setModalMessage] = useState<React.ReactNode>("");
   const [selectedRoute, setSelectedRoute] = useState<RouteItem | null>(null);
+  const [requestId, setRequestId] = useState<string | null>(null);
+  const [actionType, setActionType] = useState<"start" | "end" | null>(null);
+  const [isTripStarted, setIsTripStarted] = useState(false);
   const [completed, setCompleted] = useState(false);
 
   const { data, isError, isFetching } = useGetHistoryRoutesQuery({
@@ -75,6 +89,7 @@ const HistoryRoutesPage: React.FC = () => {
   });
 
   const [createTrip] = useCreateTripMutation();
+  const [updateRouteTime] = useUpdateRouteTimeMutation();
 
   const {
     register,
@@ -83,6 +98,15 @@ const HistoryRoutesPage: React.FC = () => {
     reset,
   } = useForm<ResendTripFormData>({
     resolver: zodResolver(resendTripSchema),
+  });
+
+  const {
+    register: registerOdometer,
+    handleSubmit: handleOdometerSubmit,
+    formState: { errors: odometerErrors },
+    reset: resetOdometer,
+  } = useForm<OdometerFormData>({
+    resolver: zodResolver(odometerSchema),
   });
 
   const getGoalColor = (goal: string) => {
@@ -102,13 +126,36 @@ const HistoryRoutesPage: React.FC = () => {
     setModalTitle("Оповещение");
     setModalMessage("");
     setSelectedRoute(null);
+    setRequestId(null);
+    setIsTripStarted(false);
     reset();
+  };
+
+  const closeOdometerModal = () => {
+    setOdometerModalOpen(false);
+    resetOdometer();
   };
 
   const handleResendRoute = (route: RouteItem) => {
     setSelectedRoute(JSON.parse(JSON.stringify(route)));
     setModalOpen(true);
     reset({ date: "", time: "", goal: route.goal });
+  };
+
+  const handleStartRoute = (route: RouteItem, request_id: string) => {
+    setSelectedRoute(JSON.parse(JSON.stringify(route)));
+    setRequestId(request_id);
+    setModalOpen(true);
+  };
+
+  const handleStartTrip = () => {
+    setActionType("start");
+    setOdometerModalOpen(true);
+  };
+
+  const handleEndTrip = () => {
+    setActionType("end");
+    setOdometerModalOpen(true);
   };
 
   const onSubmit = async (formData: ResendTripFormData) => {
@@ -149,6 +196,51 @@ const HistoryRoutesPage: React.FC = () => {
       setModalTitle("Ошибка");
       setModalMessage("Не удалось отправить маршрут. Повторите попытку.");
       setModalLoading(false);
+    }
+  };
+
+  const onOdometerSubmit = async (formData: OdometerFormData) => {
+    if (!selectedRoute || !requestId || !actionType) return;
+
+    const payload = {
+      action: actionType,
+      time: new Date().toISOString(),
+      odometer: formData.odometer,
+    };
+
+    setModalLoading(true);
+    setOdometerModalOpen(false);
+
+    try {
+      await updateRouteTime({
+        requestId,
+        routeId: selectedRoute.id!,
+        data: payload,
+      }).unwrap();
+      if (actionType === "start") {
+        setIsTripStarted(true);
+        setModalTitle("Поездка начата");
+        setModalMessage(
+          "Вы успешно начали поездку. Нажмите 'Закончить' для завершения."
+        );
+      } else {
+        closeModal();
+      }
+      setModalLoading(false);
+      resetOdometer();
+    } catch (err: any) {
+      console.error("Ошибка при обновлении времени маршрута:", err);
+      setModalLoading(false);
+      if (err?.data?.error === "Start time already set.") {
+        setModalTitle("Ошибка");
+        setModalMessage("Время начала поездки уже установлено.");
+        setIsTripStarted(true); // Предполагаем, что поездка уже начата
+      } else {
+        setModalTitle("Ошибка");
+        setModalMessage(
+          "Не удалось обновить данные маршрута. Повторите попытку."
+        );
+      }
     }
   };
 
@@ -243,13 +335,24 @@ const HistoryRoutesPage: React.FC = () => {
                 key={index}
                 className="bg-white rounded-2xl p-6 border-2 border-blue-100 shadow-lg hover:shadow-xl transition-all duration-300 relative group hover:border-blue-200"
               >
-                <button
-                  onClick={() => handleResendRoute(route)}
-                  className="absolute top-4 right-4 p-3 text-gray-500 hover:text-blue-600 transition-all duration-200 bg-gray-50 hover:bg-blue-50 rounded-xl shadow-sm hover:shadow-md"
-                  title="Отправиться в путь"
-                >
-                  <RefreshCw className="w-5 h-5" />
-                </button>
+                {role === "user" && !completed && (
+                  <button
+                    onClick={() => handleResendRoute(route)}
+                    className="absolute top-4 right-4 p-3 text-gray-500 hover:text-blue-600 transition-all duration-200 bg-gray-50 hover:bg-blue-50 rounded-xl shadow-sm hover:shadow-md"
+                    title="Повторить путь"
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                  </button>
+                )}
+                {role === "driver" && !completed && (
+                  <button
+                    onClick={() => handleStartRoute(route, route.request_id!)}
+                    className="absolute top-4 right-4 p-3 text-gray-500 hover:text-green-600 transition-all duration-200 bg-gray-50 hover:bg-green-50 rounded-xl shadow-sm hover:shadow-md"
+                    title="Начать путь"
+                  >
+                    <Play className="w-5 h-5" />
+                  </button>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                   <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
@@ -323,25 +426,51 @@ const HistoryRoutesPage: React.FC = () => {
             }}
             message={undefined}
           >
-            {modalLoading || modalMessage ? (
+            {modalLoading ? (
+              <div className="bg-white rounded-xl p-6">
+                <p className="text-base font-medium text-gray-700 mb-4">
+                  Подождите, выполняется действие...
+                </p>
+              </div>
+            ) : modalMessage ? (
               <div className="bg-white rounded-xl p-6">
                 <p className="text-base font-medium text-gray-700 mb-4">
                   {modalMessage}
                 </p>
-
-                {modalMessage && !modalLoading && (
+                {role === "driver" ? (
+                  <div className="flex justify-end space-x-4">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={handleStartTrip}
+                      disabled={isTripStarted}
+                      className="px-6 py-3 bg-green-500 text-white font-semibold rounded-xl hover:bg-green-600 transition-colors shadow-lg hover:shadow-xl disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    >
+                      Начать путь
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={handleEndTrip}
+                      disabled={!isTripStarted}
+                      className="px-6 py-3 bg-red-500 text-white font-semibold rounded-xl hover:bg-red-600 transition-colors shadow-lg hover:shadow-xl disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    >
+                      Закончить
+                    </Button>
+                  </div>
+                ) : (
                   <div className="flex justify-end mt-6">
-                    <button
+                    <Button
                       type="button"
                       className="px-6 py-3 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-colors shadow-lg hover:shadow-xl"
                       onClick={closeModal}
                     >
                       Закрыть
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
-            ) : (
+            ) : role === "user" ? (
               <div className="bg-white rounded-xl p-6">
                 <div onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                   <div>
@@ -411,7 +540,86 @@ const HistoryRoutesPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+            ) : (
+              <div className="bg-white rounded-xl p-6">
+                <div className="space-y-6">
+                  <div className="flex justify-end space-x-4">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={handleStartTrip}
+                      disabled={isTripStarted}
+                      className="px-6 py-3 bg-green-500 text-white font-semibold rounded-xl hover:bg-green-600 transition-colors shadow-lg hover:shadow-xl disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    >
+                      Начать путь
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={handleEndTrip}
+                      disabled={!isTripStarted}
+                      className="px-6 py-3 bg-red-500 text-white font-semibold rounded-xl hover:bg-red-600 transition-colors shadow-lg hover:shadow-xl disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    >
+                      Закончить
+                    </Button>
+                  </div>
+                </div>
+              </div>
             )}
+          </Modal>
+        )}
+
+        {odometerModalOpen && (
+          <Modal
+            isOpen={odometerModalOpen}
+            onClose={closeOdometerModal}
+            title="Ввод показаний одометра"
+            onConfirm={function (): void {
+              throw new Error("Function not implemented.");
+            }}
+            message={undefined}
+          >
+            <div className="bg-white rounded-xl p-6">
+              <div
+                onSubmit={handleOdometerSubmit(onOdometerSubmit)}
+                className="space-y-6"
+              >
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">
+                    Показания одометра
+                  </label>
+                  <input
+                    type="number"
+                    {...registerOdometer("odometer", { valueAsNumber: true })}
+                    className="w-full rounded-xl border-2 border-gray-200 shadow-sm focus:border-blue-500 focus:ring-0 text-base font-medium px-4 py-3 transition-colors"
+                    placeholder="Введите значение одометра"
+                  />
+                  {odometerErrors.odometer && (
+                    <p className="mt-2 text-sm font-medium text-red-600">
+                      {odometerErrors.odometer.message}
+                    </p>
+                  )}
+                </div>
+                <div className="flex justify-end space-x-4 pt-4">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={closeOdometerModal}
+                    className="px-6 py-3 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-colors shadow-lg hover:shadow-xl"
+                  >
+                    Отмена
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    className="px-6 py-3 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-colors shadow-lg hover:shadow-xl"
+                    onClick={handleOdometerSubmit(onOdometerSubmit)}
+                  >
+                    Подтвердить
+                  </Button>
+                </div>
+              </div>
+            </div>
           </Modal>
         )}
 
