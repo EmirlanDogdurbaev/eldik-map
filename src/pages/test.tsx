@@ -18,7 +18,7 @@ interface Coordinates {
 
 interface UserData {
   user_id: string;
-  role: "user" | "driver";
+  role: "user" | "driver" | "dispetcher";
   coordinates: Coordinates;
   location_text: string;
 }
@@ -32,9 +32,6 @@ type ConnectionStatus = "CONNECTING" | "CONNECTED" | "DISCONNECTED" | "ERROR";
 
 const WS_URL = "ws://35.224.163.23/ws/location/";
 const API_URL = "http://35.224.163.23/api/get-pair/";
-
-// const WS_URL = "ws://localhost:8000/ws/location/";
-// const API_URL = "http://localhost:8000/api/get-pair/";
 
 // Icons
 const userIcon = L.icon({
@@ -71,8 +68,8 @@ export const Test: React.FC = () => {
   const [userId, setUserId] = useState<string>(
     localStorage.getItem("user_id") || "default_user"
   );
-  const [role, setRole] = useState<"user" | "driver">(
-    (localStorage.getItem("role") as "user" | "driver") || "user"
+  const [role, setRole] = useState<"user" | "driver" | "dispetcher">(
+    (localStorage.getItem("role") as "user" | "driver" | "dispetcher") || "user"
   );
   const [driverId, setDriverId] = useState<string>("");
 
@@ -152,7 +149,7 @@ export const Test: React.FC = () => {
 
   const sendLocation = async (lat: number, lng: number) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      setError("WebSocket not connected");
+      setError("WebSocket not Saving...");
       return;
     }
     const now = Date.now();
@@ -166,22 +163,23 @@ export const Test: React.FC = () => {
       driver_id: driverId,
       role,
       coordinates: [lat, lng],
-
       location_text: address,
     };
 
     wsRef.current.send(JSON.stringify(payload));
 
-    // Также добавляем себя вручную в users, если сервер не возвращает
-    setUsers((prev) => ({
-      ...prev,
-      [userId]: {
-        user_id: userId,
-        role,
-        coordinates: { lat, lng },
-        location_text: address,
-      },
-    }));
+    // Only update users state for non-dispetcher roles
+    if (role !== "dispetcher") {
+      setUsers((prev) => ({
+        ...prev,
+        [userId]: {
+          user_id: userId,
+          role,
+          coordinates: { lat, lng },
+          location_text: address,
+        },
+      }));
+    }
   };
 
   const startTracking = () => {
@@ -219,11 +217,14 @@ export const Test: React.FC = () => {
 
   const connectWebSocket = async () => {
     try {
-      const pair = await getPairId(userId, role);
-      console.log("🔗 getPair result:", pair);
-
-      const resolvedDriverId = pair.driver_id;
-      setDriverId(resolvedDriverId);
+      let resolvedDriverId = "";
+      // Skip pair fetching for dispetcher
+      if (role !== "dispetcher") {
+        const pair = await getPairId(userId, role);
+        console.log("🔗 getPair result:", pair);
+        resolvedDriverId = pair.driver_id;
+        setDriverId(resolvedDriverId);
+      }
 
       const wsUrl = `${WS_URL}?user_id=${encodeURIComponent(
         userId
@@ -237,7 +238,7 @@ export const Test: React.FC = () => {
         setConnectionStatus("CONNECTED");
         setError(null);
         reconnectAttempts.current = 0;
-        startTracking();
+        if (role !== "dispetcher") startTracking();
       };
 
       websocket.onmessage = (event) => {
@@ -245,37 +246,37 @@ export const Test: React.FC = () => {
           const data = JSON.parse(event.data);
           console.log("📨 Received from:", data.user_id, "| You are:", userId);
 
-          const { user_id, role, coordinates, location_text } = data;
+          const { user_id, role: userRole, coordinates, location_text } = data;
           if (!Array.isArray(coordinates) || coordinates.length !== 2) {
             throw new Error("Invalid coordinates");
           }
           const lat = parseFloat(coordinates[0]);
           const lng = parseFloat(coordinates[1]);
-          console.log("🧾 Your user_id:", userId, "From server:", data.user_id);
-
           if (isNaN(lat) || isNaN(lng)) throw new Error("NaN coordinates");
 
           const newPos: Coordinates = { lat, lng };
-          console.log("🧾 Your user_id:", userId, "From server:", data.user_id);
 
-          setUsers((prev) => {
-            const prevPos = prev[user_id]?.coordinates || newPos;
-            if (prev[user_id]) animateMarker(user_id, prevPos, newPos);
-            return {
+          // Only update state for non-dispetcher roles
+          if (userRole !== "dispetcher") {
+            setUsers((prev) => {
+              const prevPos = prev[user_id]?.coordinates || newPos;
+              if (prev[user_id]) animateMarker(user_id, prevPos, newPos);
+              return {
+                ...prev,
+                [user_id]: {
+                  user_id,
+                  role: userRole,
+                  coordinates: newPos,
+                  location_text,
+                },
+              };
+            });
+
+            setPaths((prev) => ({
               ...prev,
-              [user_id]: {
-                user_id,
-                role,
-                coordinates: newPos,
-                location_text,
-              },
-            };
-          });
-
-          setPaths((prev) => ({
-            ...prev,
-            [user_id]: [...(prev[user_id] || []), newPos].slice(-100),
-          }));
+              [user_id]: [...(prev[user_id] || []), newPos].slice(-100),
+            }));
+          }
         } catch (err) {
           console.error("❌ WebSocket message parse error:", err);
           setError("Invalid WebSocket data");
@@ -283,8 +284,7 @@ export const Test: React.FC = () => {
       };
 
       websocket.onclose = (e) => {
-        console.warn("❗ WebSocket closed", e);
-
+        console.warn("❗️ WebSocket closed", e);
         setConnectionStatus("DISCONNECTED");
         stopTracking();
         attemptReconnect();
@@ -307,19 +307,25 @@ export const Test: React.FC = () => {
   const attemptReconnect = () => {
     if (reconnectAttempts.current < maxReconnectAttempts) {
       reconnectAttempts.current += 1;
+      console.log(
+        `🔄 Reconnect attempt ${reconnectAttempts.current}/${maxReconnectAttempts}`
+      );
       setTimeout(() => {
-        console.log(`🔄 Reconnect attempt ${reconnectAttempts.current}`);
         setConnectionStatus("CONNECTING");
         connectWebSocket();
-      }, reconnectInterval);
+      }, reconnectInterval * Math.pow(2, reconnectAttempts.current));
     } else {
-      setError("Max reconnection attempts reached");
+      setError("Max reconnection attempts reached. Please refresh the page.");
+      setConnectionStatus("DISCONNECTED");
     }
   };
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("user_id");
-    const storedRole = localStorage.getItem("role") as "user" | "driver";
+    const storedRole = localStorage.getItem("role") as
+      | "user"
+      | "driver"
+      | "dispetcher";
     if (storedUserId) setUserId(storedUserId);
     if (storedRole) setRole(storedRole);
     connectWebSocket();
@@ -341,33 +347,64 @@ export const Test: React.FC = () => {
 
   return (
     <div style={{ height: "100vh", width: "100vw", position: "relative" }}>
-      <div
-        style={{
-          position: "absolute",
-          top: "1rem",
-          left: "1rem",
-          zIndex: 1000,
-          background: "white",
-          padding: "1rem",
-          borderRadius: "0.25rem",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-        }}
-      >
-        <p>Status: {connectionStatus}</p>
-        {error && <p style={{ color: "red" }}>{error}</p>}
-        <button
-          onClick={isTracking ? stopTracking : startTracking}
+      {role === "dispetcher" ? (
+        <div
           style={{
-            marginTop: "0.5rem",
-            padding: "0.5rem",
-            background: isTracking ? "red" : "blue",
-            color: "white",
+            display: "none",
+            position: "absolute",
+            top: "1rem",
+            left: "1rem",
+            zIndex: 1000,
+            background: "white",
+            padding: "1rem",
             borderRadius: "0.25rem",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
           }}
         >
-          {isTracking ? "⏹ Stop Tracking" : "▶️ Start Tracking"}
-        </button>
-      </div>
+          <p>Status: {connectionStatus}</p>
+          {error && <p style={{ color: "red" }}>{error}</p>}
+          <button
+            onClick={isTracking ? stopTracking : startTracking}
+            style={{
+              marginTop: "0.5rem",
+              padding: "0.5rem",
+              background: isTracking ? "red" : "blue",
+              color: "white",
+              borderRadius: "0.25rem",
+            }}
+          >
+            {isTracking ? "⏹️ Stop Tracking" : "▶️ Start Tracking"}
+          </button>
+        </div>
+      ) : (
+        <div
+          style={{
+            position: "absolute",
+            top: "1rem",
+            left: "1rem",
+            zIndex: 1000,
+            background: "white",
+            padding: "1rem",
+            borderRadius: "0.25rem",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+          }}
+        >
+          <p>Status: {connectionStatus}</p>
+          {error && <p style={{ color: "red" }}>{error}</p>}
+          <button
+            onClick={isTracking ? stopTracking : startTracking}
+            style={{
+              marginTop: "0.5rem",
+              padding: "0.5rem",
+              background: isTracking ? "red" : "blue",
+              color: "white",
+              borderRadius: "0.25rem",
+            }}
+          >
+            {isTracking ? "⏹️ Stop Tracking" : "▶️ Start Tracking"}
+          </button>
+        </div>
+      )}
 
       <MapContainer
         center={[42.8746, 74.6122]}
@@ -378,29 +415,32 @@ export const Test: React.FC = () => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
-        {Object.entries(users).map(([user_id, user]) => (
-          <React.Fragment key={user_id}>
-            <Marker
-              ref={(ref) => {
-                if (ref) markerRefs.current[user_id] = ref;
-              }}
-              position={[user.coordinates.lat, user.coordinates.lng]}
-              icon={user.role === "driver" ? driverIcon : userIcon}
-            >
-              <Popup>
-                {user.role}: {user.user_id}
-                <br />
-                {user.location_text}
-              </Popup>
-            </Marker>
-            {paths[user_id] && (
-              <Polyline
-                positions={paths[user_id].map((p) => [p.lat, p.lng])}
-                color={user.role === "driver" ? "blue" : "green"}
-              />
-            )}
-          </React.Fragment>
-        ))}
+        {Object.entries(users)
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          .filter(([_, user]) => user.role !== "dispetcher")
+          .map(([user_id, user]) => (
+            <React.Fragment key={user_id}>
+              <Marker
+                ref={(ref) => {
+                  if (ref) markerRefs.current[user_id] = ref;
+                }}
+                position={[user.coordinates.lat, user.coordinates.lng]}
+                icon={user.role === "driver" ? driverIcon : userIcon}
+              >
+                <Popup>
+                  {user.role}: {user.user_id}
+                  <br />
+                  {user.location_text}
+                </Popup>
+              </Marker>
+              {paths[user_id] && (
+                <Polyline
+                  positions={paths[user_id].map((p) => [p.lat, p.lng])}
+                  color={user.role === "driver" ? "blue" : "green"}
+                />
+              )}
+            </React.Fragment>
+          ))}
         <RecenterMap position={latestPosition} />
       </MapContainer>
     </div>

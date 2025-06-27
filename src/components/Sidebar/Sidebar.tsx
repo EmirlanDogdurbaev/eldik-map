@@ -37,7 +37,6 @@ interface SidebarProps {
   setDestination: (coords: { lat: number; lng: number } | null) => void;
   selecting: "departure" | "destination" | null;
   setSelecting: (type: "departure" | "destination" | null) => void;
-  
 }
 
 type RouteItem = {
@@ -64,7 +63,6 @@ const tripSchema = z
       .min(1, "Укажите причину")
       .max(500, "Причина слишком длинная"),
 
-    // разрешаем адрес ИЛИ координаты
     departure: z
       .string()
       .refine((val) => val.length > 3 || coordinateRegex.test(val), {
@@ -128,7 +126,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     resolver: zodResolver(tripSchema),
   });
 
-  const { sidebarRef, dragRef, toggleRef } = useDraggableSidebar(60); // 60 — высота шапки
+  const { sidebarRef, dragRef, toggleRef } = useDraggableSidebar(60);
 
   const [createTrip, { isLoading, error }] = useCreateTripMutation();
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -145,7 +143,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   });
 
   const buildSingleRouteFromForm = (): RouteItem | null => {
-    const values = getValues(); // from react-hook-form
+    const values = getValues();
     if (
       !values.date ||
       !values.time ||
@@ -268,7 +266,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       };
     });
 
-    // Показать модалку загрузки
     setModalTitle("Отправка...");
     setModalMessage("Подождите, происходит отправка маршрутов.");
     setModalLoading(true);
@@ -353,12 +350,11 @@ const Sidebar: React.FC<SidebarProps> = ({
         ref={sidebarRef}
         className={asideClass + " p-4 sm:p-6 flex flex-col gap-6"}
       >
-        {/* Мобильная шапка с улучшенным дизайном */}
-        <div className="relative sm:hidden flex justify-center items-center mt-2 mb-6">
-          <div
-            ref={dragRef}
-            className="w-12 h-1.5 bg-gradient-to-r from-gray-300 to-gray-400 rounded-full cursor-grab active:cursor-grabbing touch-none transition-all hover:from-gray-400 hover:to-gray-500"
-          ></div>
+        <div
+          ref={dragRef}
+          className="relative sm:hidden flex justify-center items-center mt-2 mb-6"
+        >
+          <div className="min-w-screen h-6     rounded-full cursor-grab active:cursor-grabbing touch-none transition-all hover:from-gray-400 hover:to-gray-500"></div>
           <button
             ref={toggleRef}
             onClick={() => console.log("Тоггл сайдбара")}
@@ -387,7 +383,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             </h4>
           </div>
 
-          {/* Компонент выбора координат */}
           <LocationInputs
             departure={departure}
             destination={destination}
@@ -402,7 +397,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             onCloseSidebar={() => toggleRef.current?.click()}
           />
 
-          {/* Дата и время в красивых карточках */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
               <label
@@ -449,7 +443,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
 
-          {/* Причина поездки */}
           <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
             <label
               htmlFor="goal"
@@ -480,7 +473,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
 
-          {/* Выбор транспорта - улучшенный дизайн */}
           <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-lg hover:shadow-xl transition-shadow">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-2">
@@ -525,7 +517,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               ))}
             </div>
 
-            {/* Кнопки действий */}
             <div className="space-y-4">
               <Button
                 type="button"
@@ -536,7 +527,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                 Добавить в список маршрутов
               </Button>
 
-              {/* Список маршрутов с улучшенным дизайном */}
               {routes.length > 0 && (
                 <div className="space-y-3">
                   <h3 className="font-semibold text-gray-800 text-center">
@@ -630,7 +620,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
               )}
 
-              {/* Главная кнопка отправки */}
               <Button
                 type="button"
                 onClick={handleSendButton}
