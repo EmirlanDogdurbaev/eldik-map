@@ -30,8 +30,8 @@ interface PairData {
 
 type ConnectionStatus = "CONNECTING" | "CONNECTED" | "DISCONNECTED" | "ERROR";
 
-const WS_URL = "ws://35.224.163.23/ws/location/";
-const API_URL = "http://35.224.163.23/api/get-pair/";
+const WS_URL = `${import.meta.env.VITE_WS_URL}/location/`;
+const API_URL = `${import.meta.env.VITE_API_URL}/get-pair/`;
 
 // Icons
 const userIcon = L.icon({
