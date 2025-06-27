@@ -1,56 +1,125 @@
-# React + TypeScript + Vite
+# Eldik Map
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+### 1. Клонирование проекта
 
-Currently, two official plugins are available:
+```bash
+git clone https://github.com/EmirlanDogdurbaev/eldik-map.git
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-});
+cd eldik-map
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from "eslint-plugin-react-x";
-import reactDom from "eslint-plugin-react-dom";
-
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    "react-x": reactX,
-    "react-dom": reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs["recommended-typescript"].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-});
+```
+npm install
+```
+или
+```
+yarn install
 ```
 
-# eldik-map
+# .env.example
+```
+YOUR_API_KEY="",
+YOUR_AUTH_DOMAIN="",
+YOUR_PROJECT_ID="",
+YOUR_STORAGE_BUCKET="",
+YOUR_SENDER_ID="",
+YOUR_APP_ID="",
+#measurementId: ""
+REACT_APP_FIREBASE_VAPID_KEY=""
+
+VITE_API_URL= ""
+```
+
+```
+npm run dev
+# или
+yarn dev
+```
+
+Сборка проекта
+```
+npm run build
+# или
+yarn build
+```
+
+
+Запуск через Docker
+1. Сборка Docker-образа
+```
+docker build -t eldik-map .
+
+```
+
+Убедись, что в корне проекта есть Dockerfile и nginx.conf.
+
+2. Запуск контейнера
+```
+docker run -d -p 80:80 --name eldik-map-container eldik-map
+```
+
+## После запуска открой http://localhost в браузере.
+
+```
+docker stop eldik-map-container
+ ```
+
+
+Удалить контейнер:
+```
+docker rm eldik-map-container
+
+```
+Удалить образ:
+```
+docker rmi eldik-map
+
+```
+
+Посмотреть все контейнеры:
+```
+docker ps -a
+```
+📄 Файлы Docker
+```
+Dockerfile
+```
+```
+FROM node:20 AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+RUN npm run build
+
+FROM nginx:stable-alpine
+
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
+
+```
+
+```
+nginx.conf
+nginx
+
+server {
+    listen 80;
+    server_name localhost;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+
+```
