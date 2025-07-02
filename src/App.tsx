@@ -28,7 +28,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/403" element={<AccessDenied />} />
-
+        <Route path="/test" element={<Test />} />
         <Route path="/" element={<RedirectByRole />} />
 
         <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
