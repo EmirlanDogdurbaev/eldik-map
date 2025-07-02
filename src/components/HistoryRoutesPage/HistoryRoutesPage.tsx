@@ -262,7 +262,7 @@ const HistoryRoutesPage: React.FC = () => {
 
   if (isError || !data || !data.results.routes) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
+      <div className=" min-h-screen bg-gradient-to-br from-blue-50 to-white">
         <div className="max-w-4xl mx-auto px-6 py-8 text-center min-h-[500px] flex flex-col items-center justify-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-2xl mb-4 shadow-sm">
             <span className="text-2xl text-red-600">⚠️</span>
@@ -279,8 +279,8 @@ const HistoryRoutesPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
-      <div className="max-w-4xl mx-auto px-6 py-8 font-inter">
+    <div className="w-full min-h-screen  bg-gradient-to-br from-blue-50 to-white ">
+      <div className="max-w-screen mx-auto px-6 py-8 font-inter">
         <div className="mb-8">
           <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-blue-100">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
