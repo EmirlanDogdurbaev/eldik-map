@@ -32,7 +32,6 @@ export function useDraggableSidebar(visibleHead = 60) {
     setIsOpen(false);
   }
 
-  // Mount, resize
   useEffect(() => {
     if (window.innerWidth < 640) closePanel();
     else if (sidebarRef.current) sidebarRef.current.style.transform = "";
@@ -42,10 +41,8 @@ export function useDraggableSidebar(visibleHead = 60) {
     };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-    // eslint-disable-next-line
   }, []);
 
-  // Drag events
   useEffect(() => {
     if (!dragRef.current) return;
     const handlePointerDown = (e: PointerEvent) => {
@@ -84,10 +81,8 @@ export function useDraggableSidebar(visibleHead = 60) {
       dragElem.removeEventListener("pointermove", handlePointerMove);
       dragElem.removeEventListener("pointerup", handlePointerUp);
     };
-    // eslint-disable-next-line
   }, [isDragging, startY, startTr]);
 
-  // Toggle by button
   useEffect(() => {
     if (!toggleRef.current) return;
     const handleClick = (e: MouseEvent) => {

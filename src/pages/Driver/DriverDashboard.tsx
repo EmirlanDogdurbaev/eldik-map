@@ -5,12 +5,14 @@ const DriverDashboard: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth);
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-md w-full max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Панель водителя</h2>
-      <p>
-        Добро пожаловать, {user?.name}! Здесь вы можете видеть назначенные
-        поездки.
-      </p>
+    <div className=" bg-white rounded-lg shadow-md w-full  mx-auto  bg-gradient-to-br from-blue-50 to-white ">
+      <div className="p-6 text-center">
+        <h2 className="text-3xl font-bold mb-4 ">Панель водителя</h2>
+        <p className="text-2xl">
+          Добро пожаловать, <b>{user?.name.toUpperCase()}</b>! Здесь вы можете
+          видеть назначенные поездки.
+        </p>
+      </div>
       <HistoryRoutesPage />
     </div>
   );

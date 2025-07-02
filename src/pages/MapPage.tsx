@@ -163,7 +163,7 @@ const MapPage: React.FC = () => {
 
         <MapContainer
           style={{ height: "150%" }}
-          className="flex-1 min-w-0"
+          className="flex-1 min-w-0 z-10"
           zoom={13}
           zoomControl={false}
           center={[42.87, 74.66]} // Бишкек по центру
