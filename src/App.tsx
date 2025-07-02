@@ -29,7 +29,6 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/403" element={<AccessDenied />} />
         <Route path="/test" element={<Test />} />
-
         <Route path="/" element={<RedirectByRole />} />
 
         <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
@@ -41,16 +40,19 @@ function App() {
           <Route path="/dispatcher" element={<DispatcherDashboard />} />
           <Route path="/requests/:id" element={<RequestDetail />} />
           <Route path="/cars" element={<DriverCarAssignment />} />
+          <Route path="/test" element={<Test />} />
           <Route path="/report" element={<Reports />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
           <Route path="/user/dashboard" element={<Home />} />
           <Route path="/map" element={<MapPage />} />
+          <Route path="/test" element={<Test />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["driver"]} />}>
           <Route path="/driver/dashboard" element={<DriverDashboard />} />
+          <Route path="/test" element={<Test />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />

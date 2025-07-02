@@ -25,12 +25,17 @@ export const NAVIGATION_CONFIG: RoleNavigationConfig = {
     { label: "Диспетчерская", path: "/dispatcher" },
     { label: "Машины", path: "/cars" },
     { label: "Отчеты", path: "/report" },
+    { label: "Карта", path: "/test" },
   ],
   user: [
-    { label: "Главная", path: "/user/dashboard" },
-    { label: "Карта", path: "/map" },
+    { label: "История запроса", path: "/user/dashboard" },
+    { label: "Построить маршрут", path: "/map" },
+    { label: "Карта", path: "/test" },
   ],
-  driver: [{ label: "Панель водителя", path: "/driver/dashboard" }],
+  driver: [
+    { label: "Панель водителя", path: "/driver/dashboard" },
+    { label: "Карта", path: "/test" },
+  ],
 };
 
 const Nav = () => {

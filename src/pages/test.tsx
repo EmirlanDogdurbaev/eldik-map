@@ -410,6 +410,7 @@ export const Test: React.FC = () => {
         center={[42.8746, 74.6122]}
         zoom={13}
         style={{ height: "100%", width: "100%" }}
+        className={"z-10"}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
