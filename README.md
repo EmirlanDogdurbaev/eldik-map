@@ -11,23 +11,26 @@ cd eldik-map
 ```
 npm install
 ```
+
 или
+
 ```
 yarn install
 ```
 
 # .env.example
-```
-YOUR_API_KEY="",
-YOUR_AUTH_DOMAIN="",
-YOUR_PROJECT_ID="",
-YOUR_STORAGE_BUCKET="",
-YOUR_SENDER_ID="",
-YOUR_APP_ID="",
-#measurementId: ""
-REACT_APP_FIREBASE_VAPID_KEY=""
 
-VITE_API_URL= ""
+```
+YOUR_API_KEY=
+YOUR_AUTH_DOMAIN=
+YOUR_PROJECT_ID=
+YOUR_STORAGE_BUCKET=
+YOUR_SENDER_ID=
+YOUR_APP_ID=
+REACT_APP_FIREBASE_VAPID_KEY=
+
+VITE_API_URL=
+VITE_WS_URL=
 ```
 
 ```
@@ -37,15 +40,17 @@ yarn dev
 ```
 
 Сборка проекта
+
 ```
 npm run build
 # или
 yarn build
 ```
 
-
 Запуск через Docker
+
 1. Сборка Docker-образа
+
 ```
 docker build -t eldik-map .
 
@@ -54,6 +59,7 @@ docker build -t eldik-map .
 Убедись, что в корне проекта есть Dockerfile и nginx.conf.
 
 2. Запуск контейнера
+
 ```
 docker run -d -p 80:80 --name eldik-map-container eldik-map
 ```
@@ -62,28 +68,34 @@ docker run -d -p 80:80 --name eldik-map-container eldik-map
 
 ```
 docker stop eldik-map-container
- ```
-
+```
 
 Удалить контейнер:
+
 ```
 docker rm eldik-map-container
 
 ```
+
 Удалить образ:
+
 ```
 docker rmi eldik-map
 
 ```
 
 Посмотреть все контейнеры:
+
 ```
 docker ps -a
 ```
+
 📄 Файлы Docker
+
 ```
 Dockerfile
 ```
+
 ```
 FROM node:20 AS builder
 
